@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
+
 from services.api import get_users
 
 
@@ -14,24 +15,30 @@ class RegisteredUserScreen(QWidget):
         self.main = main
         self.users = []
 
-        self.setStyleSheet("background-color: #eef2f7;")
+        self.setObjectName("root")
+        self.setStyleSheet("""
+            QWidget#root {
+                background-color: #1e1e1e;
+            }
+        """)
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(40, 20, 40, 0)
 
         # ---------------- CARD ----------------
         card = QFrame()
-        card.setMaximumWidth(750)
+        card.setMaximumWidth(880)  # Wider
+        card.setObjectName("card")
         card.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border-radius: 20px;
+            QFrame#card {
+                background-color: #f9fafb;
+                border-radius: 22px;
             }
         """)
 
         card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(50, 40, 50, 40)
-        card_layout.setSpacing(18)
+        card_layout.setContentsMargins(60, 45, 60, 45)
+        card_layout.setSpacing(22)
 
         title = QLabel("Select Registered User")
         title.setFont(QFont("Segoe UI", 26, QFont.Bold))
@@ -41,47 +48,69 @@ class RegisteredUserScreen(QWidget):
         # ---------------- SEARCH ----------------
         self.search = QLineEdit()
         self.search.setPlaceholderText("Search user...")
-        self.search.setFixedHeight(55)
+        self.search.setFixedHeight(58)
         self.search.setStyleSheet("""
             QLineEdit {
-                border: 1px solid #cfd9e6;
-                border-radius: 8px;
-                padding: 10px;
-                font-size: 16px;
+                border: 1px solid #d1d5db;
+                border-radius: 10px;
+                padding: 14px;
+                font-size: 17px;
                 background: white;
-                color: #1a2b49;
+                color: #111827;
             }
         """)
         self.search.textChanged.connect(self.filter_users)
 
         # ---------------- LIST ----------------
         self.list_widget = QListWidget()
+        self.list_widget.setSpacing(12)
         self.list_widget.setStyleSheet("""
             QListWidget {
-                border: 1px solid #cfd9e6;
-                border-radius: 10px;
-                font-size: 16px;
-                padding: 5px;
+                border: none;
+                background: transparent;
             }
+
             QListWidget::item {
-                padding: 15px;
+                border-radius: 14px;
+                padding: 20px;
+                background-color: white;
+                color: #111827;
+                border: 1px solid #e5e7eb;
             }
+
+            QListWidget::item:hover {
+                background-color: #eef2ff;
+                border: 1px solid #2d63c8;
+            }
+
             QListWidget::item:selected {
                 background-color: #2d63c8;
                 color: white;
+                border: 1px solid #2d63c8;
+            }
+
+            QScrollBar:vertical {
+                border: none;
+                background: transparent;
+                width: 8px;
+            }
+
+            QScrollBar::handle:vertical {
+                background: #cbd5e1;
+                border-radius: 4px;
             }
         """)
         self.list_widget.itemClicked.connect(self.select_user)
 
         # ---------------- BACK BUTTON ----------------
         back_btn = QPushButton("Back")
-        back_btn.setFixedHeight(55)
+        back_btn.setFixedHeight(58)
         back_btn.setStyleSheet("""
             QPushButton {
                 background-color: #9aa5b1;
                 color: white;
-                font-size: 16px;
-                border-radius: 10px;
+                font-size: 17px;
+                border-radius: 12px;
             }
             QPushButton:hover {
                 background-color: #7f8a96;
@@ -108,46 +137,86 @@ class RegisteredUserScreen(QWidget):
             "For Academic & Research Use Only"
         )
         footer.setAlignment(Qt.AlignCenter)
-        footer.setFixedHeight(70)
+        footer.setFixedHeight(75)
         footer.setStyleSheet("""
             background-color: #2d63c8;
             color: white;
             font-size: 14px;
+            font-weight: 500;
         """)
 
         main_layout.addLayout(center_layout)
         main_layout.addWidget(footer)
 
-    # ---------------- LOAD USERS ----------------
-    def load_users(self):
-        self.users = get_users()
-        self.populate_list(self.users)
+    # -------------------------------------------------
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.load_users()
 
+    # -------------------------------------------------
+    def load_users(self):
+        try:
+            raw_users = get_users()
+            self.users = self.normalize_users(raw_users)
+            self.populate_list(self.users)
+        except Exception as e:
+            print("Failed to load users:", e)
+            self.users = []
+            self.list_widget.clear()
+
+    # -------------------------------------------------
+    def normalize_users(self, raw_users):
+        normalized = []
+
+        for u in raw_users:
+            firstname = (u.get("firstname") or "").strip()
+            middlename = (u.get("middlename") or "").strip()
+            lastname = (u.get("lastname") or "").strip()
+
+            full_name = f"{firstname} {middlename} {lastname}".strip()
+            full_name = " ".join(full_name.split())
+
+            normalized.append({
+                "id": u.get("id"),
+                "full_name": full_name,
+                "age": u.get("age"),
+                "gender": u.get("gender")
+            })
+
+        return normalized
+
+    # -------------------------------------------------
     def populate_list(self, users):
         self.list_widget.clear()
+
         for user in users:
             item = QListWidgetItem(
-                f'{user["full_name"]} | Age: {user["age"]} | {user["sex"]}'
+                f'{user["full_name"]}\nAge: {user["age"]}    Sex: {user["gender"]}'
             )
             item.setData(Qt.UserRole, user)
+            item.setSizeHint(item.sizeHint())
             self.list_widget.addItem(item)
 
-    # ---------------- SEARCH ----------------
+    # -------------------------------------------------
     def filter_users(self, text):
+        text = text.lower().strip()
+
         filtered = [
             u for u in self.users
-            if text.lower() in u["full_name"].lower()
+            if text in u["full_name"].lower()
         ]
+
         self.populate_list(filtered)
 
-    # ---------------- SELECT ----------------
+    # -------------------------------------------------
     def select_user(self, item):
         user = item.data(Qt.UserRole)
 
         self.main.upload.set_user_data(
             user["full_name"],
             str(user["age"]),
-            user["sex"]
+            user["gender"],
+            user["id"]
         )
 
         self.main.stack.setCurrentWidget(self.main.upload)

@@ -1,6 +1,5 @@
 import qrcode
-import uuid
-
+from PySide6.QtCore import QDateTime
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
@@ -11,6 +10,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QSizePolicy
 )
+from PySide6.QtWidgets import QHBoxLayout
 
 
 class ResultScreen(QWidget):
@@ -26,7 +26,7 @@ class ResultScreen(QWidget):
     def setup_ui(self):
         self.setStyleSheet("""
             QWidget {
-                background-color: #f3f4f6;
+                background-color: #ffffff;
                 font-family: Segoe UI, Arial;
             }
 
@@ -43,7 +43,7 @@ class ResultScreen(QWidget):
             }
 
             QLabel#resultText {
-                font-size: 20px;
+                font-size: 18px;
                 color: #111827;
             }
 
@@ -65,7 +65,6 @@ class ResultScreen(QWidget):
         main_layout.setContentsMargins(40, 40, 40, 40)
         main_layout.setAlignment(Qt.AlignCenter)
 
-        # Card (controlled width)
         card = QFrame()
         card.setObjectName("card")
         card.setMaximumWidth(700)
@@ -75,60 +74,72 @@ class ResultScreen(QWidget):
         card_layout.setSpacing(25)
         card_layout.setAlignment(Qt.AlignCenter)
 
-        # Heading
         heading = QLabel("Urinalysis Result")
         heading.setObjectName("heading")
         heading.setAlignment(Qt.AlignCenter)
 
-        # Result Text
         self.result_label = QLabel("Waiting for result...")
         self.result_label.setObjectName("resultText")
         self.result_label.setWordWrap(True)
         self.result_label.setAlignment(Qt.AlignCenter)
 
-        # QR
         self.qr_label = QLabel()
         self.qr_label.setAlignment(Qt.AlignCenter)
         self.qr_label.setFixedSize(220, 220)
         self.qr_label.hide()
 
-        # Single Button (inside card only)
         self.back_btn = QPushButton("Test Another Sample")
         self.back_btn.clicked.connect(self.go_home)
 
         card_layout.addWidget(heading)
         card_layout.addWidget(self.result_label)
-        card_layout.addWidget(self.qr_label)
+        qr_container = QHBoxLayout()
+        qr_container.addStretch()
+        qr_container.addWidget(self.qr_label, alignment=Qt.AlignCenter)
+        qr_container.addStretch()
+
+        card_layout.addLayout(qr_container)
         card_layout.addSpacing(10)
         card_layout.addWidget(self.back_btn)
 
         main_layout.addWidget(card)
 
     # ==========================================================
-    # SET RESULT + QR
+    # SET RESULT (ALIGNED WITH /analyze RESPONSE)
     # ==========================================================
 
-    def set_result(self, result):
+    def set_result(self, data, name="", age="", gender=""):
         self.qr_label.clear()
         self.qr_label.hide()
 
-        if isinstance(result, dict):
-            message = result.get("message", "Result available.")
-            url = result.get("url")
+        if not isinstance(data, dict):
+            self.result_label.setText("Invalid server response.")
+            return
 
-            self.result_label.setText(message)
+        rbc = data.get("rbc")
+        wbc = data.get("wbc")
+        uti = data.get("uti")
+        result_url = data.get("result_url")
 
-            if not url:
-                random_id = uuid.uuid4().hex[:10]
-                url = f"https://preesense.ai/report/{random_id}"
+        uti_text = "POSITIVE" if uti else "NEGATIVE"
 
-            self.generate_qr(url)
+        current_dt = QDateTime.currentDateTime()
+        time_text = current_dt.toString("MMMM d, yyyy hh:mm ap")
 
-        else:
-            self.result_label.setText(str(result))
-            random_id = uuid.uuid4().hex[:10]
-            sample_url = f"https://preesense.ai/report/{random_id}"
-            self.generate_qr(sample_url)
+        result_text = (
+            f"Patient Name: {name}\n"
+            f"Age: {age}\n"
+            f"Gender: {gender}\n\n"
+            f"Date & Time: {time_text}\n\n"
+            f"RBC Count: {rbc}\n"
+            f"WBC Count: {wbc}\n"
+            f"UTI Result: {uti_text}"
+        )
+
+        self.result_label.setText(result_text)
+
+        if result_url:
+            self.generate_qr(result_url)
 
     # ==========================================================
     # QR GENERATION
@@ -153,8 +164,18 @@ class ResultScreen(QWidget):
     # ==========================================================
     # NAVIGATION
     # ==========================================================
-
-    def go_home(self):
+    def reset(self):
+        self.result_label.setText("Waiting for result...")
         self.qr_label.clear()
         self.qr_label.hide()
+
+    def go_home(self):
+        self.reset()
+
+        if hasattr(self.main, "upload"):
+            self.main.upload.reset()
+
+        if hasattr(self.main, "info"):
+            self.main.info.reset()
+
         self.main.stack.setCurrentWidget(self.main.home)

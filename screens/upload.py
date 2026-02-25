@@ -188,10 +188,11 @@ class UploadScreen(QWidget):
     # USER DATA
     # ==========================================================
 
-    def set_user_data(self, name, age, sex):
+    def set_user_data(self, name, age, sex, user_id):
         self.name = name
         self.age = age
         self.sex = sex
+        self.user_id = user_id
 
     # ==========================================================
     # ANALYZE FLOW (AUTO CAPTURE + API)
@@ -216,13 +217,18 @@ class UploadScreen(QWidget):
             QApplication.processEvents()
 
             response = analyze_sample(
-                self.name,
+                self.user_id,
                 self.age,
                 self.sex,
                 self.image_path
             )
 
-            self.main.result.set_result(response)
+            self.main.result.set_result(
+                response,
+                name=self.name,
+                age=self.age,
+                gender=self.sex
+            )
             self.main.stack.setCurrentWidget(self.main.result)
 
         except Exception as e:
@@ -253,3 +259,13 @@ class UploadScreen(QWidget):
         if self.camera:
             self.camera.stop()
         event.accept()
+
+    def reset(self):
+        self.name = ""
+        self.age = ""
+        self.sex = ""
+        self.user_id = ""
+        self.image_path = ""
+
+        self.analyze_btn.setText("Analyze Sample")
+        self.analyze_btn.setEnabled(True)

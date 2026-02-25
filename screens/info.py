@@ -7,6 +7,7 @@ from PySide6.QtGui import QFont, QIntValidator
 from PySide6.QtWidgets import QMessageBox
 
 from PySide6.QtWidgets import QDialog
+from services.api import create_user
 
 class ConfirmDialog(QDialog):
     def __init__(self, full_name, age, sex):
@@ -290,11 +291,18 @@ class InfoScreen(QWidget):
         if not self.validate_fields():
             return
 
-        full_name = (
-            f"{self.first_name.text().strip()} "
-            f"{self.middle_name.text().strip()} "
-            f"{self.last_name.text().strip()}"
-        ).strip()
+        # Normalize to Title Case BEFORE saving
+        firstname = self.first_name.text().strip().title()
+        middlename = self.middle_name.text().strip().title()
+        lastname = self.last_name.text().strip().title()
+
+        # Update input fields visually (optional but consistent)
+        self.first_name.setText(firstname)
+        self.middle_name.setText(middlename)
+        self.last_name.setText(lastname)
+
+        full_name = f"{firstname} {middlename} {lastname}".strip()
+        full_name = " ".join(full_name.split())
 
         age = self.age.text().strip()
         sex = self.sex.currentText()
@@ -302,9 +310,61 @@ class InfoScreen(QWidget):
         dialog = ConfirmDialog(full_name, age, sex)
 
         if dialog.exec() == QDialog.Accepted:
-            self.main.upload.set_user_data(
-                full_name,
-                age,
-                sex
-            )
+            try:
+                result = create_user(
+                    firstname,
+                    middlename,
+                    lastname,
+                    age,
+                    sex
+                )
+
+                user_id = result.get("id")
+
+                self.main.upload.set_user_data(
+                    full_name,
+                    age,
+                    sex,
+                    user_id
+                )
+
+                self.main.stack.setCurrentWidget(self.main.upload)
+
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    "API Error",
+                    f"Failed to save user:\n{str(e)}"
+                )
             self.main.stack.setCurrentWidget(self.main.upload)
+
+    def reset(self):
+        self.first_name.clear()
+        self.middle_name.clear()
+        self.last_name.clear()
+        self.age.clear()
+        self.sex.setCurrentIndex(0)
+
+        self.error_label.hide()
+        self.error_label.setText("")
+
+        # Restore normal styling
+        default_style = """
+            QLineEdit, QComboBox {
+                border: 1px solid #cfd9e6;
+                border-radius: 8px;
+                padding: 10px;
+                font-size: 16px;
+                background: white;
+                color: #1a2b49;
+            }
+        """
+
+        for widget in [
+            self.first_name,
+            self.middle_name,
+            self.last_name,
+            self.age,
+            self.sex
+        ]:
+            widget.setStyleSheet(default_style)
