@@ -34,8 +34,9 @@ class UploadScreen(QWidget):
         self.buffer = QByteArray()
         self.last_frame = None
 
-        self.preview_width = 320
-        self.preview_height = 240
+        # Recommended preview size
+        self.preview_width = 640
+        self.preview_height = 480
 
         self.setup_ui()
         self.start_camera_stream()
@@ -55,7 +56,7 @@ class UploadScreen(QWidget):
                 color: white;
                 font-size: 14px;
                 border-radius: 10px;
-                min-height: 40px;
+                min-height: 42px;
                 padding: 6px 14px;
             }
             QPushButton:pressed { background-color: #1e40af; }
@@ -63,7 +64,7 @@ class UploadScreen(QWidget):
         """)
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(30, 20, 30, 20)
+        main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(15)
 
         title = QLabel("Urine Sample Capture")
@@ -109,7 +110,7 @@ class UploadScreen(QWidget):
         main_layout.addWidget(self.card)
 
     # ==========================================================
-    # CAMERA CONTROL
+    # CAMERA STREAM (Balanced Performance + Quality)
     # ==========================================================
 
     def start_camera_stream(self):
@@ -123,12 +124,12 @@ class UploadScreen(QWidget):
             "rpicam-vid",
             "--nopreview",
             "--inline",
-            "--width", "320",
-            "--height", "240",
-            "--framerate", "8",
+            "--width", "640",
+            "--height", "480",
+            "--framerate", "15",
             "--codec", "mjpeg",
-            "--quality", "70",
-            "--buffer-count", "2",
+            "--quality", "90",
+            "--buffer-count", "3",
             "-o", "-"
         ]
 
@@ -151,7 +152,7 @@ class UploadScreen(QWidget):
         self.refresh_btn.setEnabled(True)
 
     # ==========================================================
-    # STREAM READER (STABLE)
+    # STREAM READER (Frame Dropping + Stable)
     # ==========================================================
 
     def read_stream(self):
@@ -160,7 +161,7 @@ class UploadScreen(QWidget):
 
         self.buffer.append(self.process.readAllStandardOutput())
 
-        if self.buffer.size() > 1_500_000:
+        if self.buffer.size() > 3_000_000:
             self.buffer.clear()
             return
 
@@ -179,6 +180,7 @@ class UploadScreen(QWidget):
         if not pixmap.loadFromData(jpg):
             return
 
+        # Use FastTransformation (do not use Smooth)
         scaled = pixmap.scaled(
             self.preview_width,
             self.preview_height,
@@ -199,7 +201,7 @@ class UploadScreen(QWidget):
         self.user_id = user_id
 
     # ==========================================================
-    # CAPTURE
+    # CAPTURE (Full Quality Frame)
     # ==========================================================
 
     def start_analysis(self):
