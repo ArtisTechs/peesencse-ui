@@ -210,25 +210,25 @@ class RegisteredUserScreen(QWidget):
         self.populate_list(filtered)
 
     # -------------------------------------------------
-        def select_user(self, item):
-            user = item.data(Qt.UserRole)
+    def select_user(self, item):
+        user = item.data(Qt.UserRole)
 
-            reply = QMessageBox.question(
-                self,
-                "Confirm Selection",
-                f'Select user:\n\n{user["full_name"]}?',
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
-            )
+        reply = QMessageBox.question(
+            self,
+            "Confirm Selection",
+            f'Select user:\n\n{user["full_name"]}?',
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
 
-            if reply != QMessageBox.Yes:
-                return
+        if reply != QMessageBox.Yes:
+            return
 
-            self.main.upload.set_user_data(
-                user["full_name"],
-                str(user["age"]),
-                user["gender"],
-                user["id"]
-            )
+        self.main.upload.set_user_data(
+            user["full_name"],
+            str(user["age"]),
+            user["gender"],
+            user["id"]
+        )
 
-            self.main.stack.setCurrentWidget(self.main.upload)
+        self.main.stack.setCurrentWidget(self.main.upload)
