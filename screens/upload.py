@@ -1,11 +1,10 @@
 import os
+import subprocess
 
 # ==========================================================
 # PLATFORM MODE
 # ==========================================================
-# True  = Raspberry Pi mode
-# False = Windows / standard webcam mode
-IS_RPI = False
+IS_RPI = True
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -16,16 +15,8 @@ from PySide6.QtWidgets import (
     QPushButton,
     QFrame,
     QMessageBox,
-    QSizePolicy,
     QApplication
 )
-from PySide6.QtMultimedia import (
-    QCamera,
-    QMediaDevices,
-    QImageCapture,
-    QMediaCaptureSession
-)
-from PySide6.QtMultimediaWidgets import QVideoWidget
 
 from services.api import analyze_sample
 
@@ -38,17 +29,13 @@ class UploadScreen(QWidget):
         self.name = ""
         self.age = ""
         self.sex = ""
+        self.user_id = ""
         self.image_path = ""
 
-        self.camera = None
-        self.capture = None
-        self.capture_session = None
-
         self.setup_ui()
-        self.setup_camera()
 
     # ==========================================================
-    # UI SETUP
+    # UI SETUP (7-INCH OPTIMIZED)
     # ==========================================================
 
     def setup_ui(self):
@@ -59,27 +46,27 @@ class UploadScreen(QWidget):
             }
 
             QLabel#title {
-                font-size: 22px;
+                font-size: 18px;
                 font-weight: 600;
                 color: #1f2937;
             }
 
             QFrame#card {
                 background-color: white;
-                border-radius: 16px;
-                padding: 20px;
+                border-radius: 14px;
+                padding: 16px;
             }
 
             QPushButton {
                 background-color: #2563eb;
                 color: white;
-                padding: 12px;
-                border-radius: 10px;
-                font-size: 15px;
-                min-height: 48px;
+                padding: 10px;
+                border-radius: 8px;
+                font-size: 14px;
+                min-height: 42px;
             }
 
-            QPushButton:hover {
+            QPushButton:pressed {
                 background-color: #1e40af;
             }
 
@@ -89,11 +76,11 @@ class UploadScreen(QWidget):
         """)
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(40, 30, 40, 0)
-        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(20, 15, 20, 15)
+        main_layout.setSpacing(12)
 
         # Title
-        title = QLabel("Urine Sample Camera Capture")
+        title = QLabel("Urine Sample Capture")
         title.setObjectName("title")
         title.setAlignment(Qt.AlignCenter)
 
@@ -101,19 +88,21 @@ class UploadScreen(QWidget):
         self.card = QFrame()
         self.card.setObjectName("card")
         card_layout = QVBoxLayout(self.card)
-        card_layout.setSpacing(15)
+        card_layout.setSpacing(10)
 
-        # Camera preview
-        self.video_widget = QVideoWidget()
-        self.video_widget.setMinimumHeight(360)
-        self.video_widget.setSizePolicy(
-            QSizePolicy.Expanding,
-            QSizePolicy.Expanding
-        )
+        # Preview placeholder (scaled to 7" screen)
+        self.preview_label = QLabel("Camera Ready")
+        self.preview_label.setAlignment(Qt.AlignCenter)
+        self.preview_label.setFixedHeight(380)
+        self.preview_label.setStyleSheet("""
+            background-color: #111827;
+            color: white;
+            border-radius: 10px;
+            font-size: 14px;
+        """)
 
-        # Single Analyze Button
+        # Analyze Button
         button_layout = QHBoxLayout()
-        button_layout.setSpacing(15)
 
         self.analyze_btn = QPushButton("Analyze Sample")
         self.analyze_btn.clicked.connect(self.start_analysis)
@@ -122,67 +111,11 @@ class UploadScreen(QWidget):
         button_layout.addWidget(self.analyze_btn)
         button_layout.addStretch()
 
-        card_layout.addWidget(self.video_widget)
+        card_layout.addWidget(self.preview_label)
         card_layout.addLayout(button_layout)
-
-        # Footer
-        footer = QLabel(
-            "© 2026 PreeSense – AI-Assisted Urinalysis Screening System\n"
-            "For Academic & Research Use Only"
-        )
-        footer.setAlignment(Qt.AlignCenter)
-        footer.setFixedHeight(75)
-        footer.setStyleSheet("""
-            background-color: #2563eb;
-            color: white;
-            font-size: 14px;
-            font-weight: 500;
-        """)
 
         main_layout.addWidget(title)
         main_layout.addWidget(self.card)
-        main_layout.addStretch()
-        main_layout.addWidget(footer)
-
-    # ==========================================================
-    # CAMERA SETUP (QT6)
-    # ==========================================================
-
-    def setup_camera(self):
-        cameras = QMediaDevices.videoInputs()
-
-        if not cameras:
-            QMessageBox.critical(
-                self,
-                "Camera Error",
-                "No camera detected.\nCheck system permissions."
-            )
-            return
-
-        selected_camera = None
-
-        if IS_RPI:
-            for cam in cameras:
-                if "libcamera" in cam.description().lower():
-                    selected_camera = cam
-                    break
-
-        if not selected_camera:
-            selected_camera = cameras[0]
-
-        self.camera = QCamera(selected_camera)
-
-        self.capture_session = QMediaCaptureSession()
-        self.capture_session.setCamera(self.camera)
-        self.capture_session.setVideoOutput(self.video_widget)
-
-        self.capture = QImageCapture()
-        self.capture_session.setImageCapture(self.capture)
-
-        # Use imageCaptured instead of imageSaved
-        self.capture.imageCaptured.connect(self.on_image_captured)
-
-        self.camera.start()
 
     # ==========================================================
     # USER DATA
@@ -195,27 +128,49 @@ class UploadScreen(QWidget):
         self.user_id = user_id
 
     # ==========================================================
-    # ANALYZE FLOW (AUTO CAPTURE + API)
+    # CAPTURE + ANALYSIS (RPICAM)
     # ==========================================================
 
     def start_analysis(self):
-        if not self.capture:
-            return
-
         self.analyze_btn.setEnabled(False)
-        self.analyze_btn.setText("Processing...")
+        self.analyze_btn.setText("Capturing...")
         QApplication.processEvents()
 
         self.image_path = os.path.abspath("captured_sample.jpg")
-        self.capture.captureToFile(self.image_path)
 
-    def on_image_captured(self, id, image):
-        self.perform_analysis()
+        try:
+            if IS_RPI:
+                cmd = [
+                    "rpicam-still",
+                    "-o", self.image_path,
+                    "--width", "1280",
+                    "--height", "720",
+                    "--nopreview",
+                    "--timeout", "1000",
+                    "--shutter", "20000",
+                    "--gain", "1"
+                ]
+                subprocess.run(cmd, check=True)
+            else:
+                raise RuntimeError("Non-RPI mode not supported")
+
+            self.preview_label.setText("Processing...")
+            QApplication.processEvents()
+
+            self.perform_analysis()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Capture Error", str(e))
+            self.analyze_btn.setEnabled(True)
+            self.analyze_btn.setText("Analyze Sample")
+            self.preview_label.setText("Camera Error")
+
+    # ==========================================================
+    # ANALYSIS
+    # ==========================================================
 
     def perform_analysis(self):
         try:
-            QApplication.processEvents()
-
             response = analyze_sample(
                 self.user_id,
                 self.age,
@@ -232,33 +187,15 @@ class UploadScreen(QWidget):
             self.main.stack.setCurrentWidget(self.main.result)
 
         except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Analysis Error",
-                str(e)
-            )
+            QMessageBox.critical(self, "Analysis Error", str(e))
 
         self.analyze_btn.setText("Analyze Sample")
         self.analyze_btn.setEnabled(True)
+        self.preview_label.setText("Camera Ready")
 
     # ==========================================================
-    # CAMERA LIFECYCLE
+    # RESET
     # ==========================================================
-
-    def showEvent(self, event):
-        if self.camera:
-            self.camera.start()
-        super().showEvent(event)
-
-    def hideEvent(self, event):
-        if self.camera:
-            self.camera.stop()
-        super().hideEvent(event)
-
-    def closeEvent(self, event):
-        if self.camera:
-            self.camera.stop()
-        event.accept()
 
     def reset(self):
         self.name = ""
@@ -269,3 +206,4 @@ class UploadScreen(QWidget):
 
         self.analyze_btn.setText("Analyze Sample")
         self.analyze_btn.setEnabled(True)
+        self.preview_label.setText("Camera Ready")
