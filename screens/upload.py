@@ -1,11 +1,10 @@
 import os
 import subprocess
-import cv2
 
 IS_RPI = True
 
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtCore import Qt, QProcess, QByteArray
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -32,41 +31,22 @@ class UploadScreen(QWidget):
         self.user_id = ""
         self.image_path = ""
 
-        self.cap = None
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_frame)
+        self.process = None
+        self.buffer = QByteArray()
 
         self.setup_ui()
-        self.start_camera()
+        self.start_camera_stream()
 
     # ==========================================================
-    # UI (Balanced for 7" Touchscreen 1024x600)
+    # UI
     # ==========================================================
 
     def setup_ui(self):
         self.setStyleSheet("""
-            QWidget {
-                background-color: #f3f6fb;
-                font-family: Segoe UI, Arial;
-            }
-
-            QLabel#title {
-                font-size: 20px;
-                font-weight: 600;
-                color: #1f2937;
-            }
-
-            QLabel#subtitle {
-                font-size: 13px;
-                color: #6b7280;
-            }
-
-            QFrame#card {
-                background-color: white;
-                border-radius: 16px;
-                padding: 18px;
-            }
-
+            QWidget { background-color: #f3f6fb; font-family: Segoe UI, Arial; }
+            QLabel#title { font-size: 20px; font-weight: 600; color: #1f2937; }
+            QLabel#subtitle { font-size: 13px; color: #6b7280; }
+            QFrame#card { background-color: white; border-radius: 16px; padding: 18px; }
             QPushButton {
                 background-color: #2563eb;
                 color: white;
@@ -74,14 +54,8 @@ class UploadScreen(QWidget):
                 border-radius: 10px;
                 min-height: 48px;
             }
-
-            QPushButton:pressed {
-                background-color: #1e40af;
-            }
-
-            QPushButton:disabled {
-                background-color: #9ca3af;
-            }
+            QPushButton:pressed { background-color: #1e40af; }
+            QPushButton:disabled { background-color: #9ca3af; }
         """)
 
         main_layout = QVBoxLayout(self)
@@ -96,27 +70,20 @@ class UploadScreen(QWidget):
         subtitle.setObjectName("subtitle")
         subtitle.setAlignment(Qt.AlignCenter)
 
-        # Card container
         self.card = QFrame()
         self.card.setObjectName("card")
-
         card_layout = QVBoxLayout(self.card)
         card_layout.setSpacing(15)
 
-        # Live Preview Area
         self.preview_label = QLabel()
         self.preview_label.setAlignment(Qt.AlignCenter)
         self.preview_label.setMinimumHeight(360)
-        self.preview_label.setSizePolicy(
-            QSizePolicy.Expanding,
-            QSizePolicy.Expanding
-        )
+        self.preview_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.preview_label.setStyleSheet("""
             background-color: #111827;
             border-radius: 12px;
         """)
 
-        # Button
         self.analyze_btn = QPushButton("Analyze Sample")
         self.analyze_btn.clicked.connect(self.start_analysis)
 
@@ -133,46 +100,53 @@ class UploadScreen(QWidget):
         main_layout.addWidget(self.card)
 
     # ==========================================================
-    # CAMERA LIVE PREVIEW
+    # LIVE STREAM USING RPICAM-VID
     # ==========================================================
 
-    def start_camera(self):
+    def start_camera_stream(self):
         if not IS_RPI:
             return
 
-        self.cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-        self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+        self.process = QProcess(self)
+        self.process.readyReadStandardOutput.connect(self.read_stream)
 
-        if not self.cap.isOpened():
-            QMessageBox.critical(self, "Camera Error", "Unable to open CSI camera.")
-            return
+        cmd = [
+            "rpicam-vid",
+            "--inline",
+            "--width", "640",
+            "--height", "480",
+            "--framerate", "30",
+            "--codec", "mjpeg",
+            "-o", "-"
+        ]
 
-        self.timer.start(30)
+        self.process.start(cmd[0], cmd[1:])
 
-    def update_frame(self):
-        ret, frame = self.cap.read()
-        if not ret:
-            return
+    def read_stream(self):
+        self.buffer.append(self.process.readAllStandardOutput())
 
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        h, w, ch = frame.shape
-        bytes_per_line = ch * w
+        while True:
+            start = self.buffer.indexOf(b'\xff\xd8')  # JPEG start
+            end = self.buffer.indexOf(b'\xff\xd9')    # JPEG end
 
-        qimg = QImage(frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
+            if start != -1 and end != -1 and end > start:
+                jpg = self.buffer[start:end+2]
+                self.buffer = self.buffer[end+2:]
 
-        pixmap = QPixmap.fromImage(qimg).scaled(
-            self.preview_label.width(),
-            self.preview_label.height(),
-            Qt.KeepAspectRatio,
-            Qt.SmoothTransformation
-        )
-
-        self.preview_label.setPixmap(pixmap)
+                pixmap = QPixmap()
+                pixmap.loadFromData(jpg)
+                scaled = pixmap.scaled(
+                    self.preview_label.width(),
+                    self.preview_label.height(),
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation
+                )
+                self.preview_label.setPixmap(scaled)
+            else:
+                break
 
     # ==========================================================
-    # CAPTURE + ANALYSIS
+    # CAPTURE
     # ==========================================================
 
     def start_analysis(self):
@@ -236,8 +210,8 @@ class UploadScreen(QWidget):
     # ==========================================================
 
     def closeEvent(self, event):
-        if self.cap:
-            self.cap.release()
+        if self.process:
+            self.process.kill()
         event.accept()
 
     def reset(self):
