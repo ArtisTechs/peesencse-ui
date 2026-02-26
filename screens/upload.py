@@ -2,7 +2,7 @@ import os
 
 IS_RPI = True
 
-from PySide6.QtCore import Qt, QProcess, QByteArray, QTimer
+from PySide6.QtCore import Qt, QProcess, QTimer
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QWidget,
@@ -30,7 +30,7 @@ class UploadScreen(QWidget):
         self.image_path = ""
 
         self.process = None
-        self.buffer = QByteArray()
+        self._buffer = bytearray()  # Raw bytes buffer for MJPEG parsing
         self.last_frame = None
 
         self.preview_width = 640
@@ -116,21 +116,23 @@ class UploadScreen(QWidget):
         self.set_buttons_enabled(False)
         self.refresh_btn.setText("Starting...")
         self.analyze_btn.setText("Waiting...")
+        self._buffer = bytearray()
 
         self.process = QProcess(self)
+        self.process.setProcessChannelMode(QProcess.SeparateChannels)
         self.process.readyReadStandardOutput.connect(self.read_stream)
 
         cmd = [
             "rpicam-vid",
-            "-t", "0",                  # run continuously (like rpicam-hello -t 0)
-            "--codec", "mjpeg",         # required for frame parsing
+            "-t", "0",
+            "--codec", "mjpeg",
             "--width", "640",
             "--height", "480",
             "--framerate", "20",
-            "--quality", "90",
+            "--quality", "75",       # Lower quality = less data = smoother stream
             "--inline",
             "--nopreview",
-            "-o", "-"                   # pipe to stdout
+            "-o", "-"
         ]
 
         self.process.start(cmd[0], cmd[1:])
@@ -140,7 +142,7 @@ class UploadScreen(QWidget):
             self.process = None
             return
 
-        QTimer.singleShot(5000, self.camera_ready)
+        QTimer.singleShot(3000, self.camera_ready)
 
     def camera_ready(self):
         self.refresh_btn.setText("Refresh Camera")
@@ -149,11 +151,12 @@ class UploadScreen(QWidget):
 
     def stop_camera_stream(self):
         if self.process:
+            self.process.readyReadStandardOutput.disconnect()
             self.process.kill()
             self.process.waitForFinished(3000)
             self.process = None
 
-        self.buffer.clear()
+        self._buffer = bytearray()
         self.last_frame = None
         self.preview_label.clear()
 
@@ -167,32 +170,65 @@ class UploadScreen(QWidget):
         QTimer.singleShot(500, self.start_camera_stream)
 
     # ==========================================================
-    # STREAM READER
+    # STREAM READER — proper sequential MJPEG frame extraction
     # ==========================================================
 
     def read_stream(self):
         if not self.process:
             return
 
-        self.buffer.append(self.process.readAllStandardOutput())
+        # Append new chunk to buffer
+        chunk = self.process.readAllStandardOutput()
+        self._buffer.extend(bytes(chunk))
 
-        if self.buffer.size() > 2_000_000:
-            self.buffer.clear()
+        # Cap buffer size to avoid memory bloat
+        if len(self._buffer) > 4_000_000:
+            # Find the last SOI marker and keep from there
+            last_soi = self._buffer.rfind(b'\xff\xd8')
+            if last_soi != -1:
+                self._buffer = self._buffer[last_soi:]
+            else:
+                self._buffer = bytearray()
             return
 
-        start = self.buffer.lastIndexOf(b'\xff\xd8')
-        end = self.buffer.lastIndexOf(b'\xff\xd9')
+        # Extract ALL complete frames from buffer, display only the latest
+        frames_found = []
+        search_start = 0
 
-        if start == -1 or end == -1 or end <= start:
+        while True:
+            # Find next SOI (start of JPEG)
+            soi = self._buffer.find(b'\xff\xd8', search_start)
+            if soi == -1:
+                break
+
+            # Find EOI (end of JPEG) after SOI
+            eoi = self._buffer.find(b'\xff\xd9', soi + 2)
+            if eoi == -1:
+                # Incomplete frame — keep buffer from this SOI onward
+                self._buffer = self._buffer[soi:]
+                break
+
+            # Complete frame found
+            frame = bytes(self._buffer[soi:eoi + 2])
+            frames_found.append(frame)
+            search_start = eoi + 2
+        else:
+            # Loop exited normally (no break) — all data consumed
+            self._buffer = bytearray()
+
+        if search_start > 0 and search_start < len(self._buffer):
+            # Trim consumed bytes, keep remainder
+            self._buffer = self._buffer[search_start:]
+
+        if not frames_found:
             return
 
-        jpg = self.buffer[start:end + 2]
-        self.buffer.clear()
-
-        self.last_frame = bytes(jpg)
+        # Only render the most recent frame to avoid falling behind
+        latest = frames_found[-1]
+        self.last_frame = latest
 
         pixmap = QPixmap()
-        if not pixmap.loadFromData(jpg):
+        if not pixmap.loadFromData(latest):
             return
 
         scaled = pixmap.scaled(
@@ -201,7 +237,6 @@ class UploadScreen(QWidget):
             Qt.KeepAspectRatio,
             Qt.FastTransformation
         )
-
         self.preview_label.setPixmap(scaled)
 
     # ==========================================================
@@ -263,7 +298,7 @@ class UploadScreen(QWidget):
             QMessageBox.critical(self, "Analysis Error", str(e))
 
     # ==========================================================
-    # RESET (PRESERVED CLEARING + USER DATA RESET)
+    # RESET
     # ==========================================================
 
     def reset(self):
@@ -273,7 +308,7 @@ class UploadScreen(QWidget):
         self.user_id = ""
         self.image_path = ""
 
-        self.buffer.clear()
+        self._buffer = bytearray()
         self.last_frame = None
         self.preview_label.clear()
 
