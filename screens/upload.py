@@ -130,9 +130,6 @@ class UploadScreen(QWidget):
             "--framerate", "20",
             "--codec", "mjpeg",
             "--quality", "90",
-            "--buffer-count", "2",
-            "--timeout", "0",
-            "--autofocus-mode", "continuous",
             "-o", "-"
         ]
 
@@ -191,7 +188,7 @@ class UploadScreen(QWidget):
         self.age = age
         self.sex = sex
         self.user_id = user_id
-        
+
     # ==========================================================
     # CAPTURE
     # ==========================================================
