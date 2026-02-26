@@ -1,10 +1,10 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton,
-    QFrame, QHBoxLayout, QLineEdit, QDialog
+    QFrame, QLineEdit, QDialog, QApplication,
+    QSizePolicy
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QApplication
 
 EXIT_PASSWORD = "admin123"
 
@@ -16,7 +16,6 @@ class PasswordDialog(QDialog):
         self.setFixedSize(280, 130)
         self.setWindowTitle("Exit Authorization")
 
-        # Stronger top-most behavior
         self.setWindowFlags(
             Qt.Dialog |
             Qt.CustomizeWindowHint |
@@ -59,11 +58,14 @@ class HomeScreen(QWidget):
         """)
 
         main_layout = QVBoxLayout()
-        main_layout.setAlignment(Qt.AlignCenter)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        
+        center_container = QWidget()
+        center_layout = QVBoxLayout(center_container)
+        center_layout.setAlignment(Qt.AlignCenter)
 
-        # Card container (smaller for 7" screen)
+        # Card container
         card = QFrame()
         card.setFixedWidth(380)
         card.setStyleSheet("""
@@ -111,9 +113,17 @@ class HomeScreen(QWidget):
 
         card.setLayout(card_layout)
 
-        # Footer (smaller text)
-        footer = QLabel("© 2026 PeeSense – AI-Assisted Urinalysis System\nFor Academic & Research Use Only")
+        center_layout.addStretch()
+        center_layout.addWidget(card, alignment=Qt.AlignCenter)
+        center_layout.addStretch()
+
+        # Full-width footer
+        footer = QLabel(
+            "© 2026 PeeSense – AI-Assisted Urinalysis System\n"
+            "For Academic & Research Use Only"
+        )
         footer.setAlignment(Qt.AlignCenter)
+        footer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         footer.setStyleSheet("""
             background-color: #2d63c8;
             color: white;
@@ -121,9 +131,7 @@ class HomeScreen(QWidget):
             font-size: 11px;
         """)
 
-        main_layout.addLayout(top_bar)
-        main_layout.addWidget(card, alignment=Qt.AlignCenter)
-        main_layout.addStretch()
+        main_layout.addWidget(center_container)
         main_layout.addWidget(footer)
 
         self.setLayout(main_layout)
