@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QSizePolicy
 from services.api import get_users
 
 
@@ -66,8 +67,8 @@ class RegisteredUserScreen(QWidget):
         self.list_widget = QListWidget()
         self.list_widget.setSpacing(12)
         self.list_widget.setSizePolicy(
-            self.list_widget.sizePolicy().horizontalPolicy(),
-            self.list_widget.sizePolicy().Expanding
+            QSizePolicy.Preferred,
+            QSizePolicy.Expanding
         )
         self.list_widget.setStyleSheet("""
             QListWidget {
