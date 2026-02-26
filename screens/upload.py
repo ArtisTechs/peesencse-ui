@@ -2,7 +2,7 @@ import os
 
 IS_RPI = True
 
-from PySide6.QtCore import Qt, QProcess, QByteArray
+from PySide6.QtCore import Qt, QProcess, QByteArray, QTimer
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QWidget,
@@ -58,38 +58,27 @@ class UploadScreen(QWidget):
                 min-height: 42px;
                 padding: 6px 14px;
             }
-            QPushButton:pressed { background-color: #1e40af; }
-            QPushButton:disabled { background-color: #9ca3af; }
         """)
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(15)
-        main_layout.setAlignment(Qt.AlignTop)
 
         title = QLabel("Urine Sample Capture")
-        title.setObjectName("title")
         title.setAlignment(Qt.AlignCenter)
 
         subtitle = QLabel("Ensure proper focus and stable lighting before analysis.")
-        subtitle.setObjectName("subtitle")
         subtitle.setAlignment(Qt.AlignCenter)
 
         self.card = QFrame()
-        self.card.setObjectName("card")
-
         card_layout = QVBoxLayout(self.card)
-        card_layout.setSpacing(20)
-        card_layout.setAlignment(Qt.AlignCenter)  # enforce vertical centering
+        card_layout.setAlignment(Qt.AlignCenter)
 
         self.preview_label = QLabel()
         self.preview_label.setFixedSize(self.preview_width, self.preview_height)
         self.preview_label.setAlignment(Qt.AlignCenter)
-        self.preview_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.preview_label.setStyleSheet("""
-            background-color: #111827;
-            border-radius: 12px;
-        """)
+        self.preview_label.setStyleSheet(
+            "background-color: #111827; border-radius: 12px;"
+        )
 
         self.analyze_btn = QPushButton("Analyze Sample")
         self.analyze_btn.clicked.connect(self.start_analysis)
@@ -103,15 +92,15 @@ class UploadScreen(QWidget):
         button_layout.addSpacing(10)
         button_layout.addWidget(self.analyze_btn)
 
-        card_layout.addWidget(self.preview_label, alignment=Qt.AlignCenter)
+        card_layout.addWidget(self.preview_label)
         card_layout.addLayout(button_layout)
 
         main_layout.addWidget(title)
         main_layout.addWidget(subtitle)
-        main_layout.addWidget(self.card, alignment=Qt.AlignCenter)
+        main_layout.addWidget(self.card)
 
     # ==========================================================
-    # CAMERA STREAM
+    # CAMERA CONTROL
     # ==========================================================
 
     def start_camera_stream(self):
@@ -135,14 +124,30 @@ class UploadScreen(QWidget):
 
         self.process.start(cmd[0], cmd[1:])
 
-    def refresh_camera(self):
-        self.refresh_btn.setEnabled(False)
+        if not self.process.waitForStarted(3000):
+            QMessageBox.critical(self, "Camera Error", "Failed to start camera.")
+            self.process = None
 
-        # Do NOT kill camera
+    def stop_camera_stream(self):
+        if self.process:
+            self.process.kill()
+            self.process.waitForFinished(3000)
+            self.process = None
+
         self.buffer.clear()
         self.last_frame = None
         self.preview_label.clear()
 
+    def refresh_camera(self):
+        self.refresh_btn.setEnabled(False)
+
+        self.stop_camera_stream()
+
+        # allow libcamera to release hardware
+        QTimer.singleShot(500, self._restart_camera)
+
+    def _restart_camera(self):
+        self.start_camera_stream()
         self.refresh_btn.setEnabled(True)
 
     # ==========================================================
@@ -182,6 +187,10 @@ class UploadScreen(QWidget):
         )
 
         self.preview_label.setPixmap(scaled)
+
+    # ==========================================================
+    # USER DATA (PRESERVED)
+    # ==========================================================
 
     def set_user_data(self, name, age, sex, user_id):
         self.name = name
@@ -246,7 +255,5 @@ class UploadScreen(QWidget):
     # ==========================================================
 
     def closeEvent(self, event):
-        if self.process:
-            self.process.kill()
-            self.process.waitForFinished()
+        self.stop_camera_stream()
         event.accept()
