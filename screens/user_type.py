@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QHBoxLayout
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QFrame
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 
@@ -8,27 +8,32 @@ class UserTypeScreen(QWidget):
         super().__init__()
         self.main = main
 
-        self.setStyleSheet("background-color: #eef2f7;")
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #eef2f7;
+                color: #1a2b49;
+            }
+        """)
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(40, 20, 40, 0)
+        main_layout.setContentsMargins(25, 10, 25, 0)
 
         # ---------------- CARD ----------------
         card = QFrame()
-        card.setMaximumWidth(650)
+        card.setMaximumWidth(420)
         card.setStyleSheet("""
             QFrame {
                 background-color: white;
-                border-radius: 20px;
+                border-radius: 16px;
             }
         """)
 
         card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(60, 50, 60, 50)
-        card_layout.setSpacing(25)
+        card_layout.setContentsMargins(30, 30, 30, 30)
+        card_layout.setSpacing(15)
 
         title = QLabel("Select User Type")
-        title.setFont(QFont("Segoe UI", 28, QFont.Bold))
+        title.setFont(QFont("Segoe UI", 20, QFont.Bold))
         title.setStyleSheet("color: #2d63c8;")
         title.setAlignment(Qt.AlignCenter)
 
@@ -37,8 +42,8 @@ class UserTypeScreen(QWidget):
             QPushButton {
                 background-color: #2d63c8;
                 color: white;
-                font-size: 18px;
-                border-radius: 12px;
+                font-size: 14px;
+                border-radius: 8px;
             }
             QPushButton:hover {
                 background-color: #1e4ea8;
@@ -49,8 +54,8 @@ class UserTypeScreen(QWidget):
             QPushButton {
                 background-color: #9aa5b1;
                 color: white;
-                font-size: 18px;
-                border-radius: 12px;
+                font-size: 14px;
+                border-radius: 8px;
             }
             QPushButton:hover {
                 background-color: #7f8a96;
@@ -58,29 +63,19 @@ class UserTypeScreen(QWidget):
         """
 
         registered_btn = QPushButton("Already Registered")
-        registered_btn.setFixedHeight(60)
+        registered_btn.setFixedHeight(45)
         registered_btn.setStyleSheet(button_style_primary)
         registered_btn.clicked.connect(self.go_registered)
 
         new_btn = QPushButton("New User")
-        new_btn.setFixedHeight(60)
+        new_btn.setFixedHeight(45)
         new_btn.setStyleSheet(button_style_primary)
         new_btn.clicked.connect(self.go_new)
 
         # ---------------- BACK BUTTON ----------------
         back_btn = QPushButton("Back")
-        back_btn.setFixedHeight(55)
-        back_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #9aa5b1;
-                color: white;
-                font-size: 16px;
-                border-radius: 10px;
-            }
-            QPushButton:hover {
-                background-color: #7f8a96;
-            }
-        """)
+        back_btn.setFixedHeight(40)
+        back_btn.setStyleSheet(button_style_secondary)
         back_btn.clicked.connect(self.go_back)
 
         card_layout.addWidget(title)
@@ -100,11 +95,11 @@ class UserTypeScreen(QWidget):
             "For Academic & Research Use Only"
         )
         footer.setAlignment(Qt.AlignCenter)
-        footer.setFixedHeight(70)
+        footer.setFixedHeight(55)
         footer.setStyleSheet("""
             background-color: #2d63c8;
             color: white;
-            font-size: 14px;
+            font-size: 11px;
         """)
 
         main_layout.addLayout(center_layout)
