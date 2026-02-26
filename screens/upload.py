@@ -34,7 +34,6 @@ class UploadScreen(QWidget):
         self.buffer = QByteArray()
         self.last_frame = None
 
-        # Preview size (must match stream size)
         self.preview_width = 320
         self.preview_height = 240
 
@@ -54,9 +53,10 @@ class UploadScreen(QWidget):
             QPushButton {
                 background-color: #2563eb;
                 color: white;
-                font-size: 15px;
+                font-size: 14px;
                 border-radius: 10px;
-                min-height: 48px;
+                min-height: 40px;
+                padding: 6px 14px;
             }
             QPushButton:pressed { background-color: #1e40af; }
             QPushButton:disabled { background-color: #9ca3af; }
@@ -92,8 +92,12 @@ class UploadScreen(QWidget):
         self.analyze_btn = QPushButton("Analyze Sample")
         self.analyze_btn.clicked.connect(self.start_analysis)
 
+        self.refresh_btn = QPushButton("Refresh Camera")
+        self.refresh_btn.clicked.connect(self.refresh_camera)
+
         button_layout = QHBoxLayout()
         button_layout.addStretch()
+        button_layout.addWidget(self.refresh_btn)
         button_layout.addWidget(self.analyze_btn)
         button_layout.addStretch()
 
@@ -105,7 +109,7 @@ class UploadScreen(QWidget):
         main_layout.addWidget(self.card)
 
     # ==========================================================
-    # CAMERA STREAM (STABLE)
+    # CAMERA CONTROL
     # ==========================================================
 
     def start_camera_stream(self):
@@ -130,18 +134,36 @@ class UploadScreen(QWidget):
 
         self.process.start(cmd[0], cmd[1:])
 
+    def stop_camera_stream(self):
+        if self.process:
+            self.process.kill()
+            self.process.waitForFinished()
+            self.process = None
+
+        self.buffer.clear()
+        self.last_frame = None
+        self.preview_label.clear()
+
+    def refresh_camera(self):
+        self.refresh_btn.setEnabled(False)
+        self.stop_camera_stream()
+        self.start_camera_stream()
+        self.refresh_btn.setEnabled(True)
+
+    # ==========================================================
+    # STREAM READER (STABLE)
+    # ==========================================================
+
     def read_stream(self):
         if not self.process:
             return
 
         self.buffer.append(self.process.readAllStandardOutput())
 
-        # Hard memory cap to prevent freeze
         if self.buffer.size() > 1_500_000:
             self.buffer.clear()
             return
 
-        # Extract newest complete JPEG only
         start = self.buffer.lastIndexOf(b'\xff\xd8')
         end = self.buffer.lastIndexOf(b'\xff\xd9')
 
@@ -177,7 +199,7 @@ class UploadScreen(QWidget):
         self.user_id = user_id
 
     # ==========================================================
-    # CAPTURE FROM STREAM
+    # CAPTURE
     # ==========================================================
 
     def start_analysis(self):
@@ -233,9 +255,7 @@ class UploadScreen(QWidget):
     # ==========================================================
 
     def closeEvent(self, event):
-        if self.process:
-            self.process.kill()
-            self.process.waitForFinished()
+        self.stop_camera_stream()
         event.accept()
 
     def reset(self):
