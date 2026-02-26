@@ -90,11 +90,11 @@ class InfoScreen(QWidget):
             }
         """)
 
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
+        root_layout = QVBoxLayout(self)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
 
-        # ---------------- SCROLL AREA ----------------
+        # ================= SCROLL AREA =================
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
@@ -103,7 +103,10 @@ class InfoScreen(QWidget):
         scroll_layout = QVBoxLayout(scroll_content)
         scroll_layout.setContentsMargins(20, 20, 20, 20)
 
-        # ---------------- CARD ----------------
+        # top stretch keeps card vertically centered
+        scroll_layout.addStretch()
+
+        # ================= CARD =================
         card = QFrame()
         card.setMaximumWidth(420)
         card.setStyleSheet("""
@@ -122,7 +125,7 @@ class InfoScreen(QWidget):
         title.setStyleSheet("color: #2d63c8;")
         title.setAlignment(Qt.AlignCenter)
 
-        # INPUTS (unchanged)
+        # Inputs
         self.first_name = QLineEdit()
         self.first_name.setPlaceholderText("First Name")
         self.first_name.setFixedHeight(40)
@@ -207,10 +210,14 @@ class InfoScreen(QWidget):
         card_layout.addWidget(self.error_label)
         card_layout.addLayout(button_layout)
 
-        scroll_layout.addWidget(card, alignment=Qt.AlignTop)
+        scroll_layout.addWidget(card, alignment=Qt.AlignCenter)
+
+        # bottom stretch keeps it centered when no keyboard
+        scroll_layout.addStretch()
+
         scroll.setWidget(scroll_content)
 
-        # ---------------- FOOTER ----------------
+        # ================= FOOTER =================
         footer = QLabel(
             "© 2026 PeeSense – AI-Assisted Urinalysis System\n"
             "For Academic & Research Use Only"
@@ -223,8 +230,8 @@ class InfoScreen(QWidget):
             font-size: 11px;
         """)
 
-        main_layout.addWidget(scroll)
-        main_layout.addWidget(footer)
+        root_layout.addWidget(scroll)
+        root_layout.addWidget(footer)
 
         self.setStyleSheet("""
             QWidget {
