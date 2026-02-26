@@ -123,6 +123,12 @@ class UploadScreen(QWidget):
 
         self.process.start(cmd[0], cmd[1:])
 
+    def set_user_data(self, name, age, sex, user_id):
+        self.name = name
+        self.age = age
+        self.sex = sex
+        self.user_id = user_id
+
     def read_stream(self):
         self.buffer.append(self.process.readAllStandardOutput())
 
