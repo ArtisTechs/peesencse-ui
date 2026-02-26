@@ -1,6 +1,5 @@
 import qrcode
-from PySide6.QtCore import QDateTime
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QDateTime, Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QWidget,
@@ -8,9 +7,9 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QFrame,
-    QSizePolicy
+    QSizePolicy,
+    QHBoxLayout
 )
-from PySide6.QtWidgets import QHBoxLayout
 
 
 class ResultScreen(QWidget):
@@ -19,41 +18,38 @@ class ResultScreen(QWidget):
         self.main = main
         self.setup_ui()
 
-    # ==========================================================
-    # UI SETUP
-    # ==========================================================
-
     def setup_ui(self):
         self.setStyleSheet("""
             QWidget {
                 background-color: #ffffff;
                 font-family: Segoe UI, Arial;
+                color: #111827;
             }
 
             QFrame#card {
                 background-color: white;
-                border-radius: 18px;
-                padding: 40px;
+                border-radius: 14px;
+                padding: 20px;
             }
 
             QLabel#heading {
-                font-size: 26px;
+                font-size: 18px;
                 font-weight: 600;
                 color: #111827;
             }
 
             QLabel#resultText {
-                font-size: 18px;
+                font-size: 13px;
                 color: #111827;
             }
 
             QPushButton {
                 background-color: #2563eb;
                 color: white;
-                padding: 14px 28px;
-                border-radius: 10px;
-                font-size: 15px;
-                min-height: 48px;
+                padding: 8px 18px;
+                border-radius: 8px;
+                font-size: 13px;
+                min-height: 36px;
             }
 
             QPushButton:hover {
@@ -62,16 +58,16 @@ class ResultScreen(QWidget):
         """)
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(40, 40, 40, 40)
+        main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setAlignment(Qt.AlignCenter)
 
         card = QFrame()
         card.setObjectName("card")
-        card.setMaximumWidth(700)
+        card.setMaximumWidth(420)
         card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
 
         card_layout = QVBoxLayout(card)
-        card_layout.setSpacing(25)
+        card_layout.setSpacing(15)
         card_layout.setAlignment(Qt.AlignCenter)
 
         heading = QLabel("Urinalysis Result")
@@ -85,7 +81,7 @@ class ResultScreen(QWidget):
 
         self.qr_label = QLabel()
         self.qr_label.setAlignment(Qt.AlignCenter)
-        self.qr_label.setFixedSize(220, 220)
+        self.qr_label.setFixedSize(160, 160)
         self.qr_label.hide()
 
         self.back_btn = QPushButton("Test Another Sample")
@@ -93,20 +89,16 @@ class ResultScreen(QWidget):
 
         card_layout.addWidget(heading)
         card_layout.addWidget(self.result_label)
+
         qr_container = QHBoxLayout()
         qr_container.addStretch()
         qr_container.addWidget(self.qr_label, alignment=Qt.AlignCenter)
         qr_container.addStretch()
 
         card_layout.addLayout(qr_container)
-        card_layout.addSpacing(10)
         card_layout.addWidget(self.back_btn)
 
         main_layout.addWidget(card)
-
-    # ==========================================================
-    # SET RESULT (ALIGNED WITH /analyze RESPONSE)
-    # ==========================================================
 
     def set_result(self, data, name="", age="", gender=""):
         self.qr_label.clear()
@@ -141,10 +133,6 @@ class ResultScreen(QWidget):
         if result_url:
             self.generate_qr(result_url)
 
-    # ==========================================================
-    # QR GENERATION
-    # ==========================================================
-
     def generate_qr(self, url):
         qr = qrcode.make(url)
         qr_path = "temp_qr.png"
@@ -152,8 +140,8 @@ class ResultScreen(QWidget):
 
         pixmap = QPixmap(qr_path)
         pixmap = pixmap.scaled(
-            200,
-            200,
+            150,
+            150,
             Qt.KeepAspectRatio,
             Qt.SmoothTransformation
         )
@@ -161,9 +149,6 @@ class ResultScreen(QWidget):
         self.qr_label.setPixmap(pixmap)
         self.qr_label.show()
 
-    # ==========================================================
-    # NAVIGATION
-    # ==========================================================
     def reset(self):
         self.result_label.setText("Waiting for result...")
         self.qr_label.clear()
