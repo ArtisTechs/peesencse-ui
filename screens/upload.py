@@ -1,5 +1,4 @@
 import os
-import subprocess
 
 IS_RPI = True
 
@@ -33,6 +32,7 @@ class UploadScreen(QWidget):
 
         self.process = None
         self.buffer = QByteArray()
+        self.last_frame = None
 
         self.setup_ui()
         self.start_camera_stream()
@@ -74,11 +74,17 @@ class UploadScreen(QWidget):
         self.card.setObjectName("card")
         card_layout = QVBoxLayout(self.card)
         card_layout.setSpacing(15)
+        card_layout.setAlignment(Qt.AlignCenter)
 
         self.preview_label = QLabel()
         self.preview_label.setAlignment(Qt.AlignCenter)
-        self.preview_label.setMinimumHeight(360)
-        self.preview_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        # Fixed preview size (prevents cropping)
+        self.preview_width = 480
+        self.preview_height = 360
+
+        self.preview_label.setFixedSize(self.preview_width, self.preview_height)
+        self.preview_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.preview_label.setStyleSheet("""
             background-color: #111827;
             border-radius: 12px;
@@ -92,7 +98,7 @@ class UploadScreen(QWidget):
         button_layout.addWidget(self.analyze_btn)
         button_layout.addStretch()
 
-        card_layout.addWidget(self.preview_label)
+        card_layout.addWidget(self.preview_label, alignment=Qt.AlignCenter)
         card_layout.addLayout(button_layout)
 
         main_layout.addWidget(title)
@@ -100,7 +106,7 @@ class UploadScreen(QWidget):
         main_layout.addWidget(self.card)
 
     # ==========================================================
-    # LIVE STREAM USING RPICAM-VID
+    # CAMERA STREAM
     # ==========================================================
 
     def start_camera_stream(self):
@@ -114,8 +120,8 @@ class UploadScreen(QWidget):
             "rpicam-vid",
             "--nopreview",
             "--inline",
-            "--width", "640",
-            "--height", "480",
+            "--width", "480",
+            "--height", "360",
             "--framerate", "30",
             "--codec", "mjpeg",
             "-o", "-"
@@ -123,40 +129,55 @@ class UploadScreen(QWidget):
 
         self.process.start(cmd[0], cmd[1:])
 
+    def read_stream(self):
+        if not self.process:
+            return
+
+        self.buffer.append(self.process.readAllStandardOutput())
+
+        while True:
+            start = self.buffer.indexOf(b'\xff\xd8')
+            end = self.buffer.indexOf(b'\xff\xd9')
+
+            if start != -1 and end != -1 and end > start:
+                jpg = self.buffer[start:end + 2]
+                self.buffer = self.buffer[end + 2:]
+
+                self.last_frame = bytes(jpg)
+
+                pixmap = QPixmap()
+                pixmap.loadFromData(jpg)
+
+                scaled = pixmap.scaled(
+                    self.preview_width,
+                    self.preview_height,
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation
+                )
+
+                self.preview_label.setPixmap(scaled)
+            else:
+                break
+
+    # ==========================================================
+    # USER DATA
+    # ==========================================================
+
     def set_user_data(self, name, age, sex, user_id):
         self.name = name
         self.age = age
         self.sex = sex
         self.user_id = user_id
 
-    def read_stream(self):
-        self.buffer.append(self.process.readAllStandardOutput())
-
-        while True:
-            start = self.buffer.indexOf(b'\xff\xd8')  # JPEG start
-            end = self.buffer.indexOf(b'\xff\xd9')    # JPEG end
-
-            if start != -1 and end != -1 and end > start:
-                jpg = self.buffer[start:end+2]
-                self.buffer = self.buffer[end+2:]
-
-                pixmap = QPixmap()
-                pixmap.loadFromData(jpg)
-                scaled = pixmap.scaled(
-                    self.preview_label.width(),
-                    self.preview_label.height(),
-                    Qt.KeepAspectRatio,
-                    Qt.SmoothTransformation
-                )
-                self.preview_label.setPixmap(scaled)
-            else:
-                break
-
     # ==========================================================
     # CAPTURE
     # ==========================================================
 
     def start_analysis(self):
+        if not self.last_frame:
+            QMessageBox.warning(self, "No Frame", "Camera not ready yet.")
+            return
+
         self.analyze_btn.setEnabled(False)
         self.analyze_btn.setText("Capturing...")
         QApplication.processEvents()
@@ -164,17 +185,8 @@ class UploadScreen(QWidget):
         self.image_path = os.path.abspath("captured_sample.jpg")
 
         try:
-            cmd = [
-                "rpicam-still",
-                "-o", self.image_path,
-                "--width", "1280",
-                "--height", "720",
-                "--nopreview",
-                "--timeout", "600",
-                "--shutter", "20000",
-                "--gain", "1"
-            ]
-            subprocess.run(cmd, check=True)
+            with open(self.image_path, "wb") as f:
+                f.write(self.last_frame)
 
             self.analyze_btn.setText("Processing...")
             QApplication.processEvents()
@@ -219,6 +231,7 @@ class UploadScreen(QWidget):
     def closeEvent(self, event):
         if self.process:
             self.process.kill()
+            self.process.waitForFinished()
         event.accept()
 
     def reset(self):
