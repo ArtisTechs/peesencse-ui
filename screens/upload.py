@@ -12,8 +12,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QFrame,
     QMessageBox,
-    QApplication,
-    QSizePolicy
+    QApplication
 )
 
 from services.api import analyze_sample
@@ -49,7 +48,7 @@ class UploadScreen(QWidget):
             QWidget { background-color: #f3f6fb; font-family: Segoe UI, Arial; }
             QLabel#title { font-size: 20px; font-weight: 600; color: #1f2937; }
             QLabel#subtitle { font-size: 13px; color: #6b7280; }
-            QFrame#card { background-color: white; border-radius: 16px; padding: 18px; }
+            QFrame#card { background-color: white; border-radius: 16px; padding: 24px; }
             QPushButton {
                 background-color: #2563eb;
                 color: white;
@@ -58,51 +57,35 @@ class UploadScreen(QWidget):
                 min-height: 42px;
                 padding: 6px 14px;
             }
+            QPushButton:disabled {
+                background-color: #9ca3af;
+            }
         """)
 
         main_layout = QVBoxLayout(self)
         main_layout.setSpacing(15)
-
-        title = QLabel("Urine Sample Capture")
-        title.setAlignment(Qt.AlignCenter)
-
-        subtitle = QLabel("Ensure proper focus and stable lighting before analysis.")
-        subtitle.setAlignment(Qt.AlignCenter)
+        main_layout.setAlignment(Qt.AlignCenter)
 
         self.card = QFrame()
         self.card.setObjectName("card")
         card_layout = QVBoxLayout(self.card)
+        card_layout.setSpacing(15)
         card_layout.setAlignment(Qt.AlignCenter)
 
-        # Preview label
+        title = QLabel("Urine Sample Capture")
+        title.setObjectName("title")
+        title.setAlignment(Qt.AlignCenter)
+
+        subtitle = QLabel("Ensure proper focus and stable lighting before analysis.")
+        subtitle.setObjectName("subtitle")
+        subtitle.setAlignment(Qt.AlignCenter)
+
         self.preview_label = QLabel()
         self.preview_label.setFixedSize(self.preview_width, self.preview_height)
         self.preview_label.setAlignment(Qt.AlignCenter)
         self.preview_label.setStyleSheet(
             "background-color: #111827; border-radius: 12px;"
         )
-
-        # Loader overlay
-        self.loader_label = QLabel("Loading...")
-        self.loader_label.setAlignment(Qt.AlignCenter)
-        self.loader_label.setStyleSheet("""
-            color: white;
-            font-size: 16px;
-            font-weight: 600;
-            background-color: rgba(0,0,0,150);
-            border-radius: 12px;
-        """)
-        self.loader_label.setFixedSize(self.preview_width, self.preview_height)
-        self.loader_label.hide()
-
-        # Container for preview + loader
-        preview_container = QFrame()
-        preview_container.setFixedSize(self.preview_width, self.preview_height)
-        preview_layout = QVBoxLayout(preview_container)
-        preview_layout.setContentsMargins(0, 0, 0, 0)
-        preview_layout.setSpacing(0)
-        preview_layout.addWidget(self.preview_label)
-        preview_layout.addWidget(self.loader_label, alignment=Qt.AlignCenter)
 
         self.analyze_btn = QPushButton("Analyze Sample")
         self.analyze_btn.clicked.connect(self.start_analysis)
@@ -116,11 +99,11 @@ class UploadScreen(QWidget):
         button_layout.addSpacing(10)
         button_layout.addWidget(self.analyze_btn)
 
-        card_layout.addWidget(preview_container)
+        card_layout.addWidget(title)
+        card_layout.addWidget(subtitle)
+        card_layout.addWidget(self.preview_label)
         card_layout.addLayout(button_layout)
 
-        main_layout.addWidget(title)
-        main_layout.addWidget(subtitle)
         main_layout.addWidget(self.card)
 
     # ==========================================================
@@ -163,9 +146,10 @@ class UploadScreen(QWidget):
         self.preview_label.clear()
 
     def refresh_camera(self):
+        self.refresh_btn.setText("Restarting...")
         self.refresh_btn.setEnabled(False)
-        self.loader_label.setText("Restarting Camera...")
-        self.loader_label.show()
+        self.analyze_btn.setEnabled(False)
+        QApplication.processEvents()
 
         self.stop_camera_stream()
 
@@ -173,8 +157,9 @@ class UploadScreen(QWidget):
 
     def _restart_camera(self):
         self.start_camera_stream()
-        self.loader_label.hide()
+        self.refresh_btn.setText("Refresh Camera")
         self.refresh_btn.setEnabled(True)
+        self.analyze_btn.setEnabled(True)
 
     # ==========================================================
     # STREAM READER
@@ -233,10 +218,9 @@ class UploadScreen(QWidget):
             QMessageBox.warning(self, "No Frame", "Camera not ready yet.")
             return
 
+        self.analyze_btn.setText("Analyzing...")
         self.analyze_btn.setEnabled(False)
         self.refresh_btn.setEnabled(False)
-        self.loader_label.setText("Analyzing Sample...")
-        self.loader_label.show()
         QApplication.processEvents()
 
         self.image_path = os.path.abspath("captured_sample.jpg")
@@ -250,7 +234,7 @@ class UploadScreen(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Capture Error", str(e))
 
-        self.loader_label.hide()
+        self.analyze_btn.setText("Analyze Sample")
         self.analyze_btn.setEnabled(True)
         self.refresh_btn.setEnabled(True)
 
@@ -279,12 +263,13 @@ class UploadScreen(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Analysis Error", str(e))
 
-        # ==========================================================
+    # ==========================================================
     # RESET
     # ==========================================================
 
     def reset(self):
-        self.loader_label.hide()
+        self.analyze_btn.setText("Analyze Sample")
+        self.refresh_btn.setText("Refresh Camera")
         self.analyze_btn.setEnabled(True)
         self.refresh_btn.setEnabled(True)
 
@@ -292,7 +277,6 @@ class UploadScreen(QWidget):
         self.last_frame = None
         self.preview_label.clear()
 
-        # restart camera cleanly
         self.stop_camera_stream()
         QTimer.singleShot(300, self.start_camera_stream)
 
