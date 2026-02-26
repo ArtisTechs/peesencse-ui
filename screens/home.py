@@ -12,10 +12,17 @@ EXIT_PASSWORD = "admin123"
 class PasswordDialog(QDialog):
     def __init__(self):
         super().__init__()
+
         self.setWindowTitle("Exit Authorization")
         self.setFixedSize(280, 130)
 
-        layout = QVBoxLayout()
+        # Always on top
+        self.setWindowModality(Qt.ApplicationModal)
+        self.setWindowFlags(
+            self.windowFlags() | Qt.WindowStaysOnTopHint
+        )
+
+        layout = QVBoxLayout(self)
 
         self.input = QLineEdit()
         self.input.setPlaceholderText("Enter password")
@@ -42,7 +49,6 @@ class PasswordDialog(QDialog):
 
         layout.addWidget(self.input)
         layout.addWidget(confirm)
-        self.setLayout(layout)
 
     def check_password(self):
         if self.input.text() == EXIT_PASSWORD:
