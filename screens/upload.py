@@ -186,6 +186,12 @@ class UploadScreen(QWidget):
 
         self.preview_label.setPixmap(scaled)
 
+    def set_user_data(self, name, age, sex, user_id):
+        self.name = name
+        self.age = age
+        self.sex = sex
+        self.user_id = user_id
+        
     # ==========================================================
     # CAPTURE
     # ==========================================================
