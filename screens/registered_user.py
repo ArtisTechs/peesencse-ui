@@ -1,11 +1,10 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLineEdit,
     QListWidget, QListWidgetItem, QPushButton,
-    QLabel, QFrame
+    QLabel, QFrame, QScrollArea
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
-
 from services.api import get_users
 
 
@@ -24,10 +23,11 @@ class RegisteredUserScreen(QWidget):
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(40, 20, 40, 0)
+        main_layout.setSpacing(0)
 
         # ---------------- CARD ----------------
         card = QFrame()
-        card.setMaximumWidth(880)  # Wider
+        card.setMaximumWidth(880)
         card.setObjectName("card")
         card.setStyleSheet("""
             QFrame#card {
@@ -49,6 +49,7 @@ class RegisteredUserScreen(QWidget):
         self.search = QLineEdit()
         self.search.setPlaceholderText("Search user...")
         self.search.setFixedHeight(58)
+        self.search.setAttribute(Qt.WA_InputMethodEnabled, True)
         self.search.setStyleSheet("""
             QLineEdit {
                 border: 1px solid #d1d5db;
@@ -64,6 +65,10 @@ class RegisteredUserScreen(QWidget):
         # ---------------- LIST ----------------
         self.list_widget = QListWidget()
         self.list_widget.setSpacing(12)
+        self.list_widget.setSizePolicy(
+            self.list_widget.sizePolicy().horizontalPolicy(),
+            self.list_widget.sizePolicy().Expanding
+        )
         self.list_widget.setStyleSheet("""
             QListWidget {
                 border: none;
@@ -124,12 +129,20 @@ class RegisteredUserScreen(QWidget):
         card_layout.addWidget(self.search)
         card_layout.addWidget(self.list_widget)
         card_layout.addWidget(back_btn)
+        card_layout.addSpacing(40)  # bottom buffer for keyboard
 
-        # Center card
-        center_layout = QVBoxLayout()
-        center_layout.addStretch()
-        center_layout.addWidget(card, alignment=Qt.AlignCenter)
-        center_layout.addStretch()
+        # ---------------- SCROLL WRAPPER ----------------
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+
+        scroll_container = QWidget()
+        scroll_layout = QVBoxLayout(scroll_container)
+        scroll_layout.addStretch()
+        scroll_layout.addWidget(card, alignment=Qt.AlignCenter)
+        scroll_layout.addStretch()
+
+        scroll.setWidget(scroll_container)
 
         # ---------------- FOOTER ----------------
         footer = QLabel(
@@ -137,7 +150,8 @@ class RegisteredUserScreen(QWidget):
             "For Academic & Research Use Only"
         )
         footer.setAlignment(Qt.AlignCenter)
-        footer.setFixedHeight(75)
+        footer.setMinimumHeight(60)
+        footer.setMaximumHeight(80)
         footer.setStyleSheet("""
             background-color: #2d63c8;
             color: white;
@@ -145,7 +159,7 @@ class RegisteredUserScreen(QWidget):
             font-weight: 500;
         """)
 
-        main_layout.addLayout(center_layout)
+        main_layout.addWidget(scroll)
         main_layout.addWidget(footer)
 
     # -------------------------------------------------
