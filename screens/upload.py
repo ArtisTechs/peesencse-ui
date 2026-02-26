@@ -122,7 +122,7 @@ class UploadScreen(QWidget):
             "--inline",
             "--width", "480",
             "--height", "360",
-            "--framerate", "30",
+            "--framerate", "10",
             "--codec", "mjpeg",
             "-o", "-"
         ]
@@ -135,29 +135,29 @@ class UploadScreen(QWidget):
 
         self.buffer.append(self.process.readAllStandardOutput())
 
-        while True:
-            start = self.buffer.indexOf(b'\xff\xd8')
-            end = self.buffer.indexOf(b'\xff\xd9')
+        # Prevent runaway buffer growth
+        if self.buffer.size() > 2_000_000:
+            self.buffer.clear()
+            return
 
-            if start != -1 and end != -1 and end > start:
-                jpg = self.buffer[start:end + 2]
-                self.buffer = self.buffer[end + 2:]
+        start = self.buffer.lastIndexOf(b'\xff\xd8')
+        end = self.buffer.lastIndexOf(b'\xff\xd9')
 
-                self.last_frame = bytes(jpg)
+        if start != -1 and end != -1 and end > start:
+            jpg = self.buffer[start:end + 2]
+            self.buffer.clear()
 
-                pixmap = QPixmap()
-                pixmap.loadFromData(jpg)
+            self.last_frame = bytes(jpg)
 
+            pixmap = QPixmap()
+            if pixmap.loadFromData(jpg):
                 scaled = pixmap.scaled(
                     self.preview_width,
                     self.preview_height,
                     Qt.KeepAspectRatio,
-                    Qt.SmoothTransformation
+                    Qt.FastTransformation
                 )
-
                 self.preview_label.setPixmap(scaled)
-            else:
-                break
 
     # ==========================================================
     # USER DATA
