@@ -34,7 +34,6 @@ class UploadScreen(QWidget):
         self.buffer = QByteArray()
         self.last_frame = None
 
-        # Recommended preview size
         self.preview_width = 640
         self.preview_height = 480
 
@@ -66,6 +65,7 @@ class UploadScreen(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(15)
+        main_layout.setAlignment(Qt.AlignTop)
 
         title = QLabel("Urine Sample Capture")
         title.setObjectName("title")
@@ -77,9 +77,10 @@ class UploadScreen(QWidget):
 
         self.card = QFrame()
         self.card.setObjectName("card")
+
         card_layout = QVBoxLayout(self.card)
-        card_layout.setAlignment(Qt.AlignCenter)
-        card_layout.setSpacing(15)
+        card_layout.setSpacing(20)
+        card_layout.setAlignment(Qt.AlignCenter)  # enforce vertical centering
 
         self.preview_label = QLabel()
         self.preview_label.setFixedSize(self.preview_width, self.preview_height)
@@ -97,20 +98,20 @@ class UploadScreen(QWidget):
         self.refresh_btn.clicked.connect(self.refresh_camera)
 
         button_layout = QHBoxLayout()
-        button_layout.addStretch()
+        button_layout.setAlignment(Qt.AlignCenter)
         button_layout.addWidget(self.refresh_btn)
+        button_layout.addSpacing(10)
         button_layout.addWidget(self.analyze_btn)
-        button_layout.addStretch()
 
-        card_layout.addWidget(self.preview_label)
+        card_layout.addWidget(self.preview_label, alignment=Qt.AlignCenter)
         card_layout.addLayout(button_layout)
 
         main_layout.addWidget(title)
         main_layout.addWidget(subtitle)
-        main_layout.addWidget(self.card)
+        main_layout.addWidget(self.card, alignment=Qt.AlignCenter)
 
     # ==========================================================
-    # CAMERA STREAM (Balanced Performance + Quality)
+    # CAMERA STREAM
     # ==========================================================
 
     def start_camera_stream(self):
@@ -126,33 +127,29 @@ class UploadScreen(QWidget):
             "--inline",
             "--width", "640",
             "--height", "480",
-            "--framerate", "15",
+            "--framerate", "20",
             "--codec", "mjpeg",
             "--quality", "90",
-            "--buffer-count", "3",
+            "--buffer-count", "2",
+            "--timeout", "0",
+            "--autofocus-mode", "continuous",
             "-o", "-"
         ]
 
         self.process.start(cmd[0], cmd[1:])
 
-    def stop_camera_stream(self):
-        if self.process:
-            self.process.kill()
-            self.process.waitForFinished()
-            self.process = None
+    def refresh_camera(self):
+        self.refresh_btn.setEnabled(False)
 
+        # Do NOT kill camera
         self.buffer.clear()
         self.last_frame = None
         self.preview_label.clear()
 
-    def refresh_camera(self):
-        self.refresh_btn.setEnabled(False)
-        self.stop_camera_stream()
-        self.start_camera_stream()
         self.refresh_btn.setEnabled(True)
 
     # ==========================================================
-    # STREAM READER (Frame Dropping + Stable)
+    # STREAM READER
     # ==========================================================
 
     def read_stream(self):
@@ -161,7 +158,7 @@ class UploadScreen(QWidget):
 
         self.buffer.append(self.process.readAllStandardOutput())
 
-        if self.buffer.size() > 3_000_000:
+        if self.buffer.size() > 2_000_000:
             self.buffer.clear()
             return
 
@@ -180,7 +177,6 @@ class UploadScreen(QWidget):
         if not pixmap.loadFromData(jpg):
             return
 
-        # Use FastTransformation (do not use Smooth)
         scaled = pixmap.scaled(
             self.preview_width,
             self.preview_height,
@@ -191,17 +187,7 @@ class UploadScreen(QWidget):
         self.preview_label.setPixmap(scaled)
 
     # ==========================================================
-    # USER DATA
-    # ==========================================================
-
-    def set_user_data(self, name, age, sex, user_id):
-        self.name = name
-        self.age = age
-        self.sex = sex
-        self.user_id = user_id
-
-    # ==========================================================
-    # CAPTURE (Full Quality Frame)
+    # CAPTURE
     # ==========================================================
 
     def start_analysis(self):
@@ -257,9 +243,7 @@ class UploadScreen(QWidget):
     # ==========================================================
 
     def closeEvent(self, event):
-        self.stop_camera_stream()
+        if self.process:
+            self.process.kill()
+            self.process.waitForFinished()
         event.accept()
-
-    def reset(self):
-        self.analyze_btn.setEnabled(True)
-        self.analyze_btn.setText("Analyze Sample")
