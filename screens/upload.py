@@ -120,9 +120,9 @@ class UploadScreen(QWidget):
             "rpicam-vid",
             "--nopreview",
             "--inline",
-            "--width", "480",
-            "--height", "360",
-            "--framerate", "10",
+            "--width", "320",
+            "--height", "240",
+            "--framerate", "8",
             "--codec", "mjpeg",
             "-o", "-"
         ]
