@@ -122,14 +122,15 @@ class UploadScreen(QWidget):
 
         cmd = [
             "rpicam-vid",
-            "--nopreview",
-            "--inline",
+            "-t", "0",                  # run continuously (like rpicam-hello -t 0)
+            "--codec", "mjpeg",         # required for frame parsing
             "--width", "640",
             "--height", "480",
             "--framerate", "20",
-            "--codec", "mjpeg",
             "--quality", "90",
-            "-o", "-"
+            "--inline",
+            "--nopreview",
+            "-o", "-"                   # pipe to stdout
         ]
 
         self.process.start(cmd[0], cmd[1:])
