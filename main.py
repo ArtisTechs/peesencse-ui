@@ -1,6 +1,7 @@
 import sys
-from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget
+from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QLineEdit
 from PySide6.QtCore import Qt
+import services.keyboard as keyboard
 
 from screens.home import HomeScreen
 from screens.info import InfoScreen
@@ -42,8 +43,28 @@ class MainWindow(QMainWindow):
         # Start at home
         self.stack.setCurrentWidget(self.home)
 
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        try:
+            self.setFocus()
+            keyboard.hide_keyboard()
+        except Exception:
+            pass
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
+    def _on_focus_changed(old, new):
+        try:
+            if isinstance(new, QLineEdit):
+                keyboard.show_keyboard()
+            else:
+                keyboard.hide_keyboard()
+        except Exception:
+            pass
+
+    app.focusChanged.connect(_on_focus_changed)
+
     window = MainWindow()
     sys.exit(app.exec())
