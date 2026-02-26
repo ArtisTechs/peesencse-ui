@@ -45,7 +45,7 @@ class UploadScreen(QWidget):
 
     def setup_ui(self):
         self.setStyleSheet("""
-            QWidget { background-color: #f3f6fb; font-family: Segoe UI, Arial; }
+            QWidget { background-color: #ffffff; font-family: Segoe UI, Arial; }
             QLabel#title { font-size: 20px; font-weight: 600; color: #1f2937; }
             QLabel#subtitle { font-size: 13px; color: #6b7280; }
             QFrame#card { background-color: white; border-radius: 16px; padding: 24px; }
