@@ -78,7 +78,6 @@ class ConfirmDialog(QDialog):
         layout.addStretch()
         layout.addLayout(button_layout)
 
-
 class InfoScreen(QWidget):
     def __init__(self, main):
         super().__init__()
@@ -226,9 +225,6 @@ class InfoScreen(QWidget):
 
         main_layout.addWidget(scroll)
         main_layout.addWidget(footer)
-
-        super().__init__()
-        self.main = main
 
         self.setStyleSheet("""
             QWidget {
