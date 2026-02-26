@@ -1,8 +1,12 @@
+import os
 import sys
+import time
+
+# Enable Qt Virtual Keyboard BEFORE QApplication
+os.environ["QT_IM_MODULE"] = "qtvirtualkeyboard"
+
 from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QLineEdit
 from PySide6.QtCore import Qt
-import services.keyboard as keyboard
-import time
 
 from screens.home import HomeScreen
 from screens.info import InfoScreen
@@ -19,6 +23,8 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("PeeSense")
+
+        # Frameless + Fullscreen (safe now)
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.showFullScreen()
 
@@ -46,34 +52,13 @@ class MainWindow(QMainWindow):
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
-        try:
-            self.setFocus()
-            keyboard.hide_keyboard()
-        except Exception:
-            pass
+        self.setFocus()
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    _last_shown = 0.0
-    _GRACE = 1.0  # seconds to ignore hide requests right after showing keyboard
-
-    def _on_focus_changed(old, new):
-        global _last_shown
-        try:
-            if isinstance(new, QLineEdit):
-                keyboard.show_keyboard()
-                _last_shown = time.time()
-            else:
-                # If keyboard was just shown, ignore the immediate focus loss
-                if time.time() - _last_shown < _GRACE:
-                    return
-                keyboard.hide_keyboard()
-        except Exception:
-            pass
-
-    app.focusChanged.connect(_on_focus_changed)
-
     window = MainWindow()
+    window.show()
+
     sys.exit(app.exec())
