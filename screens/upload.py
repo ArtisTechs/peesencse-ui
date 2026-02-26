@@ -112,6 +112,7 @@ class UploadScreen(QWidget):
 
         cmd = [
             "rpicam-vid",
+            "--nopreview",
             "--inline",
             "--width", "640",
             "--height", "480",
