@@ -1,72 +1,69 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton,
-    QFrame, QHBoxLayout, QLineEdit, QComboBox
+    QFrame, QHBoxLayout, QLineEdit, QComboBox,
+    QMessageBox, QDialog
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QIntValidator
-from PySide6.QtWidgets import QMessageBox
-
-from PySide6.QtWidgets import QDialog
 from services.api import create_user
+
 
 class ConfirmDialog(QDialog):
     def __init__(self, full_name, age, sex):
         super().__init__()
 
-        self.setFixedSize(420, 320)
+        self.setFixedSize(340, 240)
         self.setWindowTitle("Confirm Details")
         self.setModal(True)
 
         self.setStyleSheet("""
             QDialog {
                 background-color: white;
-                border-radius: 15px;
+                border-radius: 12px;
             }
             QLabel {
                 color: #1a2b49;
-                font-size: 15px;
+                font-size: 12px;
             }
         """)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(30, 25, 30, 25)
-        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
 
         title = QLabel("Please confirm the entered details:")
-        title.setStyleSheet("font-weight:600; font-size:16px;")
+        title.setStyleSheet("font-weight:600; font-size:13px;")
 
         info = QLabel(
             f"Name: {full_name}\n"
             f"Age: {age}\n"
             f"Sex: {sex}"
         )
-        info.setAlignment(Qt.AlignLeft)
 
         question = QLabel("Are these correct?")
-        question.setStyleSheet("margin-top:10px;")
 
         button_layout = QHBoxLayout()
 
         no_btn = QPushButton("No")
-        no_btn.setFixedHeight(45)
+        no_btn.setFixedHeight(35)
         no_btn.setStyleSheet("""
             QPushButton {
                 background-color: #9aa5b1;
                 color: white;
-                border-radius: 8px;
-                font-size: 14px;
+                border-radius: 6px;
+                font-size: 12px;
             }
         """)
         no_btn.clicked.connect(self.reject)
 
         yes_btn = QPushButton("Yes")
-        yes_btn.setFixedHeight(45)
+        yes_btn.setFixedHeight(35)
         yes_btn.setStyleSheet("""
             QPushButton {
                 background-color: #2d63c8;
                 color: white;
-                border-radius: 8px;
-                font-size: 14px;
+                border-radius: 6px;
+                font-size: 12px;
             }
         """)
         yes_btn.clicked.connect(self.accept)
@@ -86,58 +83,63 @@ class InfoScreen(QWidget):
         super().__init__()
         self.main = main
 
-        self.setStyleSheet("background-color: #eef2f7;")
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #eef2f7;
+                color: #1a2b49;
+            }
+        """)
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(40, 20, 40, 0)
+        main_layout.setContentsMargins(20, 10, 20, 0)
 
         # ---------------- CARD ----------------
         card = QFrame()
-        card.setMaximumWidth(650)
+        card.setMaximumWidth(420)
         card.setStyleSheet("""
             QFrame {
                 background-color: white;
-                border-radius: 20px;
+                border-radius: 16px;
             }
         """)
 
         card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(50, 40, 50, 40)
-        card_layout.setSpacing(18)
+        card_layout.setContentsMargins(25, 25, 25, 25)
+        card_layout.setSpacing(12)
 
         title = QLabel("Basic Information")
-        title.setFont(QFont("Segoe UI", 28, QFont.Bold))
+        title.setFont(QFont("Segoe UI", 20, QFont.Bold))
         title.setStyleSheet("color: #2d63c8;")
         title.setAlignment(Qt.AlignCenter)
 
         # ---------------- INPUTS ----------------
         self.first_name = QLineEdit()
         self.first_name.setPlaceholderText("First Name")
-        self.first_name.setFixedHeight(55)
+        self.first_name.setFixedHeight(40)
 
         self.middle_name = QLineEdit()
         self.middle_name.setPlaceholderText("Middle Name (Optional)")
-        self.middle_name.setFixedHeight(55)
+        self.middle_name.setFixedHeight(40)
 
         self.last_name = QLineEdit()
         self.last_name.setPlaceholderText("Last Name")
-        self.last_name.setFixedHeight(55)
+        self.last_name.setFixedHeight(40)
 
         self.age = QLineEdit()
         self.age.setPlaceholderText("Age")
-        self.age.setFixedHeight(55)
+        self.age.setFixedHeight(40)
         self.age.setValidator(QIntValidator(0, 120))
 
         self.sex = QComboBox()
         self.sex.addItems(["Select Sex", "Male", "Female"])
-        self.sex.setFixedHeight(55)
+        self.sex.setFixedHeight(40)
 
         input_style = """
             QLineEdit, QComboBox {
                 border: 1px solid #cfd9e6;
-                border-radius: 8px;
-                padding: 10px;
-                font-size: 16px;
+                border-radius: 6px;
+                padding: 6px;
+                font-size: 13px;
                 background: white;
                 color: #1a2b49;
             }
@@ -163,41 +165,34 @@ class InfoScreen(QWidget):
         self.error_label.setAlignment(Qt.AlignCenter)
         self.error_label.setStyleSheet("""
             color: #d32f2f;
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 12px;
         """)
         self.error_label.hide()
 
         # ---------------- BUTTONS ----------------
         button_layout = QHBoxLayout()
-        button_layout.setSpacing(15)
+        button_layout.setSpacing(10)
 
         back_btn = QPushButton("Back")
-        back_btn.setFixedHeight(55)
+        back_btn.setFixedHeight(40)
         back_btn.setStyleSheet("""
             QPushButton {
                 background-color: #9aa5b1;
                 color: white;
-                font-size: 16px;
-                border-radius: 10px;
-            }
-            QPushButton:hover {
-                background-color: #7f8a96;
+                font-size: 13px;
+                border-radius: 8px;
             }
         """)
         back_btn.clicked.connect(self.go_back)
 
         next_btn = QPushButton("Next")
-        next_btn.setFixedHeight(55)
+        next_btn.setFixedHeight(40)
         next_btn.setStyleSheet("""
             QPushButton {
                 background-color: #2d63c8;
                 color: white;
-                font-size: 18px;
-                border-radius: 10px;
-            }
-            QPushButton:hover {
-                background-color: #1e4ea8;
+                font-size: 14px;
+                border-radius: 8px;
             }
         """)
         next_btn.clicked.connect(self.go_next)
@@ -205,7 +200,6 @@ class InfoScreen(QWidget):
         button_layout.addWidget(back_btn)
         button_layout.addWidget(next_btn)
 
-        # ---------------- ADD TO CARD ----------------
         card_layout.addWidget(title)
         card_layout.addWidget(self.first_name)
         card_layout.addWidget(self.middle_name)
@@ -215,23 +209,21 @@ class InfoScreen(QWidget):
         card_layout.addWidget(self.error_label)
         card_layout.addLayout(button_layout)
 
-        # Center card
         center_layout = QVBoxLayout()
         center_layout.addStretch()
         center_layout.addWidget(card, alignment=Qt.AlignCenter)
         center_layout.addStretch()
 
-        # ---------------- FOOTER ----------------
         footer = QLabel(
             "© 2026 PeeSense – AI-Assisted Urinalysis System\n"
             "For Academic & Research Use Only"
         )
         footer.setAlignment(Qt.AlignCenter)
-        footer.setFixedHeight(70)
+        footer.setFixedHeight(55)
         footer.setStyleSheet("""
             background-color: #2d63c8;
             color: white;
-            font-size: 14px;
+            font-size: 11px;
         """)
 
         main_layout.addLayout(center_layout)
@@ -272,9 +264,9 @@ class InfoScreen(QWidget):
     def highlight(self, widget):
         widget.setStyleSheet("""
             border: 2px solid #d32f2f;
-            border-radius: 8px;
-            padding: 10px;
-            font-size: 16px;
+            border-radius: 6px;
+            padding: 6px;
+            font-size: 13px;
             background: white;
             color: #1a2b49;
         """)
@@ -291,12 +283,10 @@ class InfoScreen(QWidget):
         if not self.validate_fields():
             return
 
-        # Normalize to Title Case BEFORE saving
         firstname = self.first_name.text().strip().title()
         middlename = self.middle_name.text().strip().title()
         lastname = self.last_name.text().strip().title()
 
-        # Update input fields visually (optional but consistent)
         self.first_name.setText(firstname)
         self.middle_name.setText(middlename)
         self.last_name.setText(lastname)
@@ -336,7 +326,6 @@ class InfoScreen(QWidget):
                     "API Error",
                     f"Failed to save user:\n{str(e)}"
                 )
-            self.main.stack.setCurrentWidget(self.main.upload)
 
     def reset(self):
         self.first_name.clear()
@@ -348,13 +337,12 @@ class InfoScreen(QWidget):
         self.error_label.hide()
         self.error_label.setText("")
 
-        # Restore normal styling
         default_style = """
             QLineEdit, QComboBox {
                 border: 1px solid #cfd9e6;
-                border-radius: 8px;
-                padding: 10px;
-                font-size: 16px;
+                border-radius: 6px;
+                padding: 6px;
+                font-size: 13px;
                 background: white;
                 color: #1a2b49;
             }

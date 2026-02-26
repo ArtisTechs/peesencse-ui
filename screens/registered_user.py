@@ -19,42 +19,43 @@ class RegisteredUserScreen(QWidget):
         self.setStyleSheet("""
             QWidget#root {
                 background-color: #1e1e1e;
+                color: #111827;
             }
         """)
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(40, 20, 40, 0)
+        main_layout.setContentsMargins(20, 10, 20, 0)
 
         # ---------------- CARD ----------------
         card = QFrame()
-        card.setMaximumWidth(880)  # Wider
+        card.setMaximumWidth(500)
         card.setObjectName("card")
         card.setStyleSheet("""
             QFrame#card {
                 background-color: #f9fafb;
-                border-radius: 22px;
+                border-radius: 16px;
             }
         """)
 
         card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(60, 45, 60, 45)
-        card_layout.setSpacing(22)
+        card_layout.setContentsMargins(25, 25, 25, 25)
+        card_layout.setSpacing(12)
 
         title = QLabel("Select Registered User")
-        title.setFont(QFont("Segoe UI", 26, QFont.Bold))
+        title.setFont(QFont("Segoe UI", 18, QFont.Bold))
         title.setStyleSheet("color: #2d63c8;")
         title.setAlignment(Qt.AlignCenter)
 
         # ---------------- SEARCH ----------------
         self.search = QLineEdit()
         self.search.setPlaceholderText("Search user...")
-        self.search.setFixedHeight(58)
+        self.search.setFixedHeight(40)
         self.search.setStyleSheet("""
             QLineEdit {
                 border: 1px solid #d1d5db;
-                border-radius: 10px;
-                padding: 14px;
-                font-size: 17px;
+                border-radius: 8px;
+                padding: 8px;
+                font-size: 13px;
                 background: white;
                 color: #111827;
             }
@@ -63,16 +64,17 @@ class RegisteredUserScreen(QWidget):
 
         # ---------------- LIST ----------------
         self.list_widget = QListWidget()
-        self.list_widget.setSpacing(12)
+        self.list_widget.setSpacing(6)
         self.list_widget.setStyleSheet("""
             QListWidget {
                 border: none;
                 background: transparent;
+                font-size: 13px;
             }
 
             QListWidget::item {
-                border-radius: 14px;
-                padding: 20px;
+                border-radius: 10px;
+                padding: 10px;
                 background-color: white;
                 color: #111827;
                 border: 1px solid #e5e7eb;
@@ -92,25 +94,25 @@ class RegisteredUserScreen(QWidget):
             QScrollBar:vertical {
                 border: none;
                 background: transparent;
-                width: 8px;
+                width: 6px;
             }
 
             QScrollBar::handle:vertical {
                 background: #cbd5e1;
-                border-radius: 4px;
+                border-radius: 3px;
             }
         """)
         self.list_widget.itemClicked.connect(self.select_user)
 
         # ---------------- BACK BUTTON ----------------
         back_btn = QPushButton("Back")
-        back_btn.setFixedHeight(58)
+        back_btn.setFixedHeight(40)
         back_btn.setStyleSheet("""
             QPushButton {
                 background-color: #9aa5b1;
                 color: white;
-                font-size: 17px;
-                border-radius: 12px;
+                font-size: 13px;
+                border-radius: 8px;
             }
             QPushButton:hover {
                 background-color: #7f8a96;
@@ -137,12 +139,11 @@ class RegisteredUserScreen(QWidget):
             "For Academic & Research Use Only"
         )
         footer.setAlignment(Qt.AlignCenter)
-        footer.setFixedHeight(75)
+        footer.setFixedHeight(55)
         footer.setStyleSheet("""
             background-color: #2d63c8;
             color: white;
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 11px;
         """)
 
         main_layout.addLayout(center_layout)
@@ -194,7 +195,6 @@ class RegisteredUserScreen(QWidget):
                 f'{user["full_name"]}\nAge: {user["age"]}    Sex: {user["gender"]}'
             )
             item.setData(Qt.UserRole, user)
-            item.setSizeHint(item.sizeHint())
             self.list_widget.addItem(item)
 
     # -------------------------------------------------
