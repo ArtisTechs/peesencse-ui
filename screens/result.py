@@ -28,28 +28,28 @@ class ResultScreen(QWidget):
 
             QFrame#card {
                 background-color: white;
-                border-radius: 14px;
-                padding: 20px;
+                border-radius: 12px;
+                padding: 16px;
             }
 
             QLabel#heading {
-                font-size: 18px;
+                font-size: 15px;
                 font-weight: 600;
                 color: #111827;
             }
 
             QLabel#resultText {
-                font-size: 13px;
+                font-size: 11px;
                 color: #111827;
             }
 
             QPushButton {
                 background-color: #2563eb;
                 color: white;
-                padding: 8px 18px;
-                border-radius: 8px;
-                font-size: 13px;
-                min-height: 36px;
+                padding: 6px 14px;
+                border-radius: 6px;
+                font-size: 11px;
+                min-height: 30px;
             }
 
             QPushButton:hover {
@@ -58,16 +58,16 @@ class ResultScreen(QWidget):
         """)
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setContentsMargins(15, 15, 15, 15)
         main_layout.setAlignment(Qt.AlignCenter)
 
         card = QFrame()
         card.setObjectName("card")
-        card.setMaximumWidth(420)
+        card.setMaximumWidth(380)
         card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
 
         card_layout = QVBoxLayout(card)
-        card_layout.setSpacing(15)
+        card_layout.setSpacing(10)
         card_layout.setAlignment(Qt.AlignCenter)
 
         heading = QLabel("Urinalysis Result")
@@ -81,7 +81,7 @@ class ResultScreen(QWidget):
 
         self.qr_label = QLabel()
         self.qr_label.setAlignment(Qt.AlignCenter)
-        self.qr_label.setFixedSize(160, 160)
+        self.qr_label.setFixedSize(140, 140)
         self.qr_label.hide()
 
         self.back_btn = QPushButton("Test Another Sample")
@@ -140,8 +140,8 @@ class ResultScreen(QWidget):
 
         pixmap = QPixmap(qr_path)
         pixmap = pixmap.scaled(
-            150,
-            150,
+            130,
+            130,
             Qt.KeepAspectRatio,
             Qt.SmoothTransformation
         )
