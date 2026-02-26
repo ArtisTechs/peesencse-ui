@@ -63,7 +63,6 @@ class UploadScreen(QWidget):
         """)
 
         main_layout = QVBoxLayout(self)
-        main_layout.setSpacing(15)
         main_layout.setAlignment(Qt.AlignCenter)
 
         self.card = QFrame()
@@ -114,6 +113,11 @@ class UploadScreen(QWidget):
         if not IS_RPI:
             return
 
+        # disable buttons during warmup
+        self.set_buttons_enabled(False)
+        self.refresh_btn.setText("Starting Camera...")
+        self.analyze_btn.setText("Waiting...")
+
         self.process = QProcess(self)
         self.process.readyReadStandardOutput.connect(self.read_stream)
 
@@ -134,6 +138,15 @@ class UploadScreen(QWidget):
         if not self.process.waitForStarted(3000):
             QMessageBox.critical(self, "Camera Error", "Failed to start camera.")
             self.process = None
+            return
+
+        # 5 second warmup delay
+        QTimer.singleShot(5000, self.camera_ready)
+
+    def camera_ready(self):
+        self.refresh_btn.setText("Refresh Camera")
+        self.analyze_btn.setText("Analyze Sample")
+        self.set_buttons_enabled(True)
 
     def stop_camera_stream(self):
         if self.process:
@@ -146,20 +159,14 @@ class UploadScreen(QWidget):
         self.preview_label.clear()
 
     def refresh_camera(self):
+        self.set_buttons_enabled(False)
         self.refresh_btn.setText("Restarting...")
-        self.refresh_btn.setEnabled(False)
-        self.analyze_btn.setEnabled(False)
+        self.analyze_btn.setText("Waiting...")
         QApplication.processEvents()
 
         self.stop_camera_stream()
 
-        QTimer.singleShot(500, self._restart_camera)
-
-    def _restart_camera(self):
-        self.start_camera_stream()
-        self.refresh_btn.setText("Refresh Camera")
-        self.refresh_btn.setEnabled(True)
-        self.analyze_btn.setEnabled(True)
+        QTimer.singleShot(500, self.start_camera_stream)
 
     # ==========================================================
     # STREAM READER
@@ -200,17 +207,7 @@ class UploadScreen(QWidget):
         self.preview_label.setPixmap(scaled)
 
     # ==========================================================
-    # USER DATA
-    # ==========================================================
-
-    def set_user_data(self, name, age, sex, user_id):
-        self.name = name
-        self.age = age
-        self.sex = sex
-        self.user_id = user_id
-
-    # ==========================================================
-    # CAPTURE
+    # ANALYSIS
     # ==========================================================
 
     def start_analysis(self):
@@ -218,9 +215,8 @@ class UploadScreen(QWidget):
             QMessageBox.warning(self, "No Frame", "Camera not ready yet.")
             return
 
+        self.set_buttons_enabled(False)
         self.analyze_btn.setText("Analyzing...")
-        self.analyze_btn.setEnabled(False)
-        self.refresh_btn.setEnabled(False)
         QApplication.processEvents()
 
         self.image_path = os.path.abspath("captured_sample.jpg")
@@ -235,12 +231,7 @@ class UploadScreen(QWidget):
             QMessageBox.critical(self, "Capture Error", str(e))
 
         self.analyze_btn.setText("Analyze Sample")
-        self.analyze_btn.setEnabled(True)
-        self.refresh_btn.setEnabled(True)
-
-    # ==========================================================
-    # ANALYSIS
-    # ==========================================================
+        self.set_buttons_enabled(True)
 
     def perform_analysis(self):
         try:
@@ -264,19 +255,18 @@ class UploadScreen(QWidget):
             QMessageBox.critical(self, "Analysis Error", str(e))
 
     # ==========================================================
+    # UTIL
+    # ==========================================================
+
+    def set_buttons_enabled(self, state):
+        self.refresh_btn.setEnabled(state)
+        self.analyze_btn.setEnabled(state)
+
+    # ==========================================================
     # RESET
     # ==========================================================
 
     def reset(self):
-        self.analyze_btn.setText("Analyze Sample")
-        self.refresh_btn.setText("Refresh Camera")
-        self.analyze_btn.setEnabled(True)
-        self.refresh_btn.setEnabled(True)
-
-        self.buffer.clear()
-        self.last_frame = None
-        self.preview_label.clear()
-
         self.stop_camera_stream()
         QTimer.singleShot(300, self.start_camera_stream)
 
