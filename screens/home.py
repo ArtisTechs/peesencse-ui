@@ -13,38 +13,27 @@ class PasswordDialog(QDialog):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Exit Authorization")
         self.setFixedSize(280, 130)
+        self.setWindowTitle("Exit Authorization")
 
-        # Always on top
-        self.setWindowModality(Qt.ApplicationModal)
+        # Stronger top-most behavior
         self.setWindowFlags(
-            self.windowFlags() | Qt.WindowStaysOnTopHint
+            Qt.Dialog |
+            Qt.CustomizeWindowHint |
+            Qt.WindowTitleHint |
+            Qt.WindowStaysOnTopHint |
+            Qt.Tool
         )
+
+        self.setWindowModality(Qt.ApplicationModal)
 
         layout = QVBoxLayout(self)
 
         self.input = QLineEdit()
         self.input.setPlaceholderText("Enter password")
         self.input.setEchoMode(QLineEdit.Password)
-        self.input.setStyleSheet("""
-            QLineEdit {
-                color: #1a2b49;
-                font-size: 12px;
-                padding: 6px;
-            }
-        """)
 
         confirm = QPushButton("Confirm")
-        confirm.setFixedHeight(35)
-        confirm.setStyleSheet("""
-            QPushButton {
-                font-size: 12px;
-                background-color: #2d63c8;
-                color: white;
-                border-radius: 6px;
-            }
-        """)
         confirm.clicked.connect(self.check_password)
 
         layout.addWidget(self.input)
@@ -159,5 +148,7 @@ class HomeScreen(QWidget):
         self.main.stack.setCurrentWidget(self.main.user_type)
 
     def open_password(self):
-        dialog = PasswordDialog()
-        dialog.exec()
+        self.dialog = PasswordDialog()
+        self.dialog.show()
+        self.dialog.activateWindow()
+        self.dialog.raise_()
