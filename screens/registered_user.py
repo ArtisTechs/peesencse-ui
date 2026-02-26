@@ -5,8 +5,6 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QSizePolicy
-from PySide6.QtGui import QGuiApplication
 from services.api import get_users
 
 
@@ -52,7 +50,6 @@ class RegisteredUserScreen(QWidget):
         self.search.setPlaceholderText("Search user...")
         self.search.setFixedHeight(58)
         self.search.setAttribute(Qt.WA_InputMethodEnabled, True)
-        self.search.setFocusPolicy(Qt.StrongFocus) 
         self.search.setStyleSheet("""
             QLineEdit {
                 border: 1px solid #d1d5db;
@@ -69,8 +66,8 @@ class RegisteredUserScreen(QWidget):
         self.list_widget = QListWidget()
         self.list_widget.setSpacing(12)
         self.list_widget.setSizePolicy(
-            QSizePolicy.Preferred,
-            QSizePolicy.Expanding
+            self.list_widget.sizePolicy().horizontalPolicy(),
+            self.list_widget.sizePolicy().Expanding
         )
         self.list_widget.setStyleSheet("""
             QListWidget {
@@ -169,12 +166,6 @@ class RegisteredUserScreen(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         self.load_users()
-
-        # Force focus to search field
-        self.search.setFocus(Qt.OtherFocusReason)
-
-        # Force keyboard show
-        QGuiApplication.inputMethod().show()
 
     # -------------------------------------------------
     def load_users(self):

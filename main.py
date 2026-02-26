@@ -1,12 +1,9 @@
-import os
 import sys
-import time
-
-# Enable Qt Virtual Keyboard BEFORE QApplication
-os.environ["QT_IM_MODULE"] = "qtvirtualkeyboard"
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QLineEdit
 from PySide6.QtCore import Qt
+
+import services.keyboard as keyboard
 
 from screens.home import HomeScreen
 from screens.info import InfoScreen
@@ -24,9 +21,10 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("PeeSense")
 
-        # Frameless + Fullscreen (safe now)
-        self.setWindowFlags(Qt.FramelessWindowHint)
-        self.showFullScreen()
+        # DO NOT use showFullScreen on X11
+        # Allow stacking with external keyboard
+        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
+        self.showMaximized()
 
         self.stack = QStackedWidget()
         self.setCentralWidget(self.stack)
@@ -47,16 +45,25 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.result)
         self.stack.addWidget(self.registered)
 
-        # Start at home
         self.stack.setCurrentWidget(self.home)
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
         self.setFocus()
+        keyboard.hide_keyboard()
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
+    # Focus-based keyboard control
+    def _on_focus_changed(old, new):
+        if isinstance(new, QLineEdit):
+            keyboard.show_keyboard()
+        else:
+            keyboard.hide_keyboard()
+
+    app.focusChanged.connect(_on_focus_changed)
 
     window = MainWindow()
     window.show()
