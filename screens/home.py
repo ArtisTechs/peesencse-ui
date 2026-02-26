@@ -1,49 +1,9 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton,
-    QFrame, QHBoxLayout, QLineEdit, QDialog
+    QFrame
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QApplication
-
-EXIT_PASSWORD = "admin123"
-
-
-class PasswordDialog(QDialog):
-    def __init__(self):
-        super().__init__()
-
-        self.setFixedSize(280, 130)
-        self.setWindowTitle("Exit Authorization")
-
-        # Stronger top-most behavior
-        self.setWindowFlags(
-            Qt.Dialog |
-            Qt.CustomizeWindowHint |
-            Qt.WindowTitleHint |
-            Qt.WindowStaysOnTopHint |
-            Qt.Tool
-        )
-
-        self.setWindowModality(Qt.ApplicationModal)
-
-        layout = QVBoxLayout(self)
-
-        self.input = QLineEdit()
-        self.input.setPlaceholderText("Enter password")
-        self.input.setEchoMode(QLineEdit.Password)
-
-        confirm = QPushButton("Confirm")
-        confirm.clicked.connect(self.check_password)
-
-        layout.addWidget(self.input)
-        layout.addWidget(confirm)
-
-    def check_password(self):
-        if self.input.text() == EXIT_PASSWORD:
-            QApplication.quit()
-        else:
-            self.input.clear()
 
 
 class HomeScreen(QWidget):
@@ -58,28 +18,10 @@ class HomeScreen(QWidget):
             }
         """)
 
-        main_layout = QVBoxLayout()
+        main_layout = QVBoxLayout(self)
         main_layout.setAlignment(Qt.AlignCenter)
 
-        # Top bar
-        top_bar = QHBoxLayout()
-        exit_btn = QPushButton("✕")
-        exit_btn.setFixedSize(36, 36)
-        exit_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #d32f2f;
-                color: white;
-                border-radius: 18px;
-                font-weight: bold;
-                font-size: 14px;
-            }
-        """)
-        exit_btn.clicked.connect(self.open_password)
-
-        top_bar.addWidget(exit_btn, alignment=Qt.AlignLeft)
-        top_bar.addStretch()
-
-        # Card container (smaller for 7" screen)
+        # ---------------- CARD ----------------
         card = QFrame()
         card.setFixedWidth(380)
         card.setStyleSheet("""
@@ -127,8 +69,11 @@ class HomeScreen(QWidget):
 
         card.setLayout(card_layout)
 
-        # Footer (smaller text)
-        footer = QLabel("© 2026 PeeSense – AI-Assisted Urinalysis System\nFor Academic & Research Use Only")
+        # ---------------- FOOTER ----------------
+        footer = QLabel(
+            "© 2026 PeeSense – AI-Assisted Urinalysis System\n"
+            "For Academic & Research Use Only"
+        )
         footer.setAlignment(Qt.AlignCenter)
         footer.setStyleSheet("""
             background-color: #2d63c8;
@@ -137,18 +82,9 @@ class HomeScreen(QWidget):
             font-size: 11px;
         """)
 
-        main_layout.addLayout(top_bar)
         main_layout.addWidget(card, alignment=Qt.AlignCenter)
         main_layout.addStretch()
         main_layout.addWidget(footer)
 
-        self.setLayout(main_layout)
-
     def go_next(self):
         self.main.stack.setCurrentWidget(self.main.user_type)
-
-    def open_password(self):
-        self.dialog = PasswordDialog()
-        self.dialog.show()
-        self.dialog.activateWindow()
-        self.dialog.raise_()
