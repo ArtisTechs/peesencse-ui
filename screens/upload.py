@@ -34,6 +34,10 @@ class UploadScreen(QWidget):
         self.buffer = QByteArray()
         self.last_frame = None
 
+        # Preview size (must match stream size)
+        self.preview_width = 320
+        self.preview_height = 240
+
         self.setup_ui()
         self.start_camera_stream()
 
@@ -73,17 +77,12 @@ class UploadScreen(QWidget):
         self.card = QFrame()
         self.card.setObjectName("card")
         card_layout = QVBoxLayout(self.card)
-        card_layout.setSpacing(15)
         card_layout.setAlignment(Qt.AlignCenter)
+        card_layout.setSpacing(15)
 
         self.preview_label = QLabel()
-        self.preview_label.setAlignment(Qt.AlignCenter)
-
-        # Fixed preview size (prevents cropping)
-        self.preview_width = 480
-        self.preview_height = 360
-
         self.preview_label.setFixedSize(self.preview_width, self.preview_height)
+        self.preview_label.setAlignment(Qt.AlignCenter)
         self.preview_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.preview_label.setStyleSheet("""
             background-color: #111827;
@@ -98,7 +97,7 @@ class UploadScreen(QWidget):
         button_layout.addWidget(self.analyze_btn)
         button_layout.addStretch()
 
-        card_layout.addWidget(self.preview_label, alignment=Qt.AlignCenter)
+        card_layout.addWidget(self.preview_label)
         card_layout.addLayout(button_layout)
 
         main_layout.addWidget(title)
@@ -106,7 +105,7 @@ class UploadScreen(QWidget):
         main_layout.addWidget(self.card)
 
     # ==========================================================
-    # CAMERA STREAM
+    # CAMERA STREAM (STABLE)
     # ==========================================================
 
     def start_camera_stream(self):
@@ -124,6 +123,8 @@ class UploadScreen(QWidget):
             "--height", "240",
             "--framerate", "8",
             "--codec", "mjpeg",
+            "--quality", "70",
+            "--buffer-count", "2",
             "-o", "-"
         ]
 
@@ -135,29 +136,35 @@ class UploadScreen(QWidget):
 
         self.buffer.append(self.process.readAllStandardOutput())
 
-        # Prevent runaway buffer growth
-        if self.buffer.size() > 2_000_000:
+        # Hard memory cap to prevent freeze
+        if self.buffer.size() > 1_500_000:
             self.buffer.clear()
             return
 
+        # Extract newest complete JPEG only
         start = self.buffer.lastIndexOf(b'\xff\xd8')
         end = self.buffer.lastIndexOf(b'\xff\xd9')
 
-        if start != -1 and end != -1 and end > start:
-            jpg = self.buffer[start:end + 2]
-            self.buffer.clear()
+        if start == -1 or end == -1 or end <= start:
+            return
 
-            self.last_frame = bytes(jpg)
+        jpg = self.buffer[start:end + 2]
+        self.buffer.clear()
 
-            pixmap = QPixmap()
-            if pixmap.loadFromData(jpg):
-                scaled = pixmap.scaled(
-                    self.preview_width,
-                    self.preview_height,
-                    Qt.KeepAspectRatio,
-                    Qt.FastTransformation
-                )
-                self.preview_label.setPixmap(scaled)
+        self.last_frame = bytes(jpg)
+
+        pixmap = QPixmap()
+        if not pixmap.loadFromData(jpg):
+            return
+
+        scaled = pixmap.scaled(
+            self.preview_width,
+            self.preview_height,
+            Qt.KeepAspectRatio,
+            Qt.FastTransformation
+        )
+
+        self.preview_label.setPixmap(scaled)
 
     # ==========================================================
     # USER DATA
@@ -170,7 +177,7 @@ class UploadScreen(QWidget):
         self.user_id = user_id
 
     # ==========================================================
-    # CAPTURE
+    # CAPTURE FROM STREAM
     # ==========================================================
 
     def start_analysis(self):
@@ -179,7 +186,7 @@ class UploadScreen(QWidget):
             return
 
         self.analyze_btn.setEnabled(False)
-        self.analyze_btn.setText("Capturing...")
+        self.analyze_btn.setText("Processing...")
         QApplication.processEvents()
 
         self.image_path = os.path.abspath("captured_sample.jpg")
@@ -187,9 +194,6 @@ class UploadScreen(QWidget):
         try:
             with open(self.image_path, "wb") as f:
                 f.write(self.last_frame)
-
-            self.analyze_btn.setText("Processing...")
-            QApplication.processEvents()
 
             self.perform_analysis()
 
