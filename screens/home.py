@@ -1,48 +1,9 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QLineEdit, QDialog, QApplication,
-    QSizePolicy
+    QFrame, QSizePolicy
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
-
-EXIT_PASSWORD = "admin123"
-
-
-class PasswordDialog(QDialog):
-    def __init__(self):
-        super().__init__()
-
-        self.setFixedSize(280, 130)
-        self.setWindowTitle("Exit Authorization")
-
-        self.setWindowFlags(
-            Qt.Dialog |
-            Qt.CustomizeWindowHint |
-            Qt.WindowTitleHint |
-            Qt.WindowStaysOnTopHint |
-            Qt.Tool
-        )
-
-        self.setWindowModality(Qt.ApplicationModal)
-
-        layout = QVBoxLayout(self)
-
-        self.input = QLineEdit()
-        self.input.setPlaceholderText("Enter password")
-        self.input.setEchoMode(QLineEdit.Password)
-
-        confirm = QPushButton("Confirm")
-        confirm.clicked.connect(self.check_password)
-
-        layout.addWidget(self.input)
-        layout.addWidget(confirm)
-
-    def check_password(self):
-        if self.input.text() == EXIT_PASSWORD:
-            QApplication.quit()
-        else:
-            self.input.clear()
 
 
 class HomeScreen(QWidget):
@@ -79,7 +40,7 @@ class HomeScreen(QWidget):
                 background-color: #b52b27;
             }
         """)
-        exit_btn.clicked.connect(self.open_password)
+        exit_btn.clicked.connect(self.open_admin_screen)
 
         top_bar.addWidget(exit_btn, alignment=Qt.AlignLeft)
         top_bar.addStretch()
@@ -163,8 +124,6 @@ class HomeScreen(QWidget):
     def go_next(self):
         self.main.stack.setCurrentWidget(self.main.user_type)
 
-    def open_password(self):
-        self.dialog = PasswordDialog()
-        self.dialog.show()
-        self.dialog.activateWindow()
-        self.dialog.raise_()
+    def open_admin_screen(self):
+        # Navigate directly to admin password page
+        self.main.stack.setCurrentWidget(self.main.admin_password)
