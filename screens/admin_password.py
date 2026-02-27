@@ -1,7 +1,6 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QLineEdit, QDialog, QApplication,
-    QSizePolicy
+    QFrame, QLineEdit, QApplication, QSizePolicy
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
@@ -9,40 +8,66 @@ from PySide6.QtGui import QFont
 EXIT_PASSWORD = "admin123"
 
 
-class PasswordDialog(QDialog):
-    def __init__(self):
+class AdminPasswordScreen(QWidget):
+    def __init__(self, main):
         super().__init__()
+        self.main = main
 
-        self.setFixedSize(280, 130)
-        self.setWindowTitle("Exit Authorization")
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #eef2f7;
+                color: #1a2b49;
+            }
+        """)
 
-        self.setWindowFlags(
-            Qt.Dialog |
-            Qt.CustomizeWindowHint |
-            Qt.WindowTitleHint |
-            Qt.WindowStaysOnTopHint |
-            Qt.Tool
-        )
+        main_layout = QVBoxLayout(self)
+        main_layout.setAlignment(Qt.AlignCenter)
 
-        self.setWindowModality(Qt.ApplicationModal)
+        card = QFrame()
+        card.setFixedWidth(350)
+        card.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 16px;
+                padding: 25px;
+            }
+        """)
 
-        layout = QVBoxLayout(self)
+        card_layout = QVBoxLayout(card)
+        card_layout.setSpacing(15)
+
+        title = QLabel("Admin Authorization")
+        title.setFont(QFont("Segoe UI", 18, QFont.Bold))
+        title.setAlignment(Qt.AlignCenter)
 
         self.input = QLineEdit()
-        self.input.setPlaceholderText("Enter password")
+        self.input.setPlaceholderText("Enter admin password")
         self.input.setEchoMode(QLineEdit.Password)
 
-        confirm = QPushButton("Confirm")
-        confirm.clicked.connect(self.check_password)
+        confirm_btn = QPushButton("Confirm")
+        confirm_btn.setFixedHeight(40)
+        confirm_btn.clicked.connect(self.check_password)
 
-        layout.addWidget(self.input)
-        layout.addWidget(confirm)
+        back_btn = QPushButton("Back")
+        back_btn.setFixedHeight(35)
+        back_btn.clicked.connect(self.go_back)
+
+        card_layout.addWidget(title)
+        card_layout.addWidget(self.input)
+        card_layout.addWidget(confirm_btn)
+        card_layout.addWidget(back_btn)
+
+        main_layout.addWidget(card)
 
     def check_password(self):
         if self.input.text() == EXIT_PASSWORD:
             QApplication.quit()
         else:
             self.input.clear()
+
+    def go_back(self):
+        self.input.clear()
+        self.main.stack.setCurrentWidget(self.main.home)
 
 
 class HomeScreen(QWidget):
@@ -57,35 +82,31 @@ class HomeScreen(QWidget):
             }
         """)
 
-        main_layout = QVBoxLayout()
+        main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # --- TOP BAR WITH SMALL X BUTTON ---
+        # Top bar with small X button
         top_bar = QHBoxLayout()
         top_bar.setContentsMargins(10, 10, 0, 0)
 
         exit_btn = QPushButton("X")
-        exit_btn.setFixedSize(26, 26)
+        exit_btn.setFixedSize(28, 28)
         exit_btn.setStyleSheet("""
             QPushButton {
                 background-color: #d9534f;
                 color: white;
-                border-radius: 13px;
+                border-radius: 14px;
                 font-weight: bold;
-                padding: 0px;
             }
             QPushButton:hover {
                 background-color: #b52b27;
             }
         """)
-        exit_btn.clicked.connect(self.open_password)
+        exit_btn.clicked.connect(self.open_admin_screen)
 
         top_bar.addWidget(exit_btn, alignment=Qt.AlignLeft)
         top_bar.addStretch()
-
-        main_layout.addLayout(top_bar)
-        # --- END TOP BAR ---
 
         center_container = QWidget()
         center_layout = QVBoxLayout(center_container)
@@ -101,7 +122,7 @@ class HomeScreen(QWidget):
             }
         """)
 
-        card_layout = QVBoxLayout()
+        card_layout = QVBoxLayout(card)
         card_layout.setAlignment(Qt.AlignCenter)
         card_layout.setSpacing(15)
 
@@ -136,10 +157,8 @@ class HomeScreen(QWidget):
         card_layout.addWidget(subtitle)
         card_layout.addWidget(start_btn)
 
-        card.setLayout(card_layout)
-
         center_layout.addStretch()
-        center_layout.addWidget(card, alignment=Qt.AlignCenter)
+        center_layout.addWidget(card)
         center_layout.addStretch()
 
         footer = QLabel(
@@ -155,16 +174,12 @@ class HomeScreen(QWidget):
             font-size: 11px;
         """)
 
+        main_layout.addLayout(top_bar)
         main_layout.addWidget(center_container)
         main_layout.addWidget(footer)
-
-        self.setLayout(main_layout)
 
     def go_next(self):
         self.main.stack.setCurrentWidget(self.main.user_type)
 
-    def open_password(self):
-        self.dialog = PasswordDialog()
-        self.dialog.show()
-        self.dialog.activateWindow()
-        self.dialog.raise_()
+    def open_admin_screen(self):
+        self.main.stack.setCurrentWidget(self.main.admin_password)

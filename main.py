@@ -11,8 +11,7 @@ from screens.upload import UploadScreen
 from screens.result import ResultScreen
 from screens.user_type import UserTypeScreen
 from screens.registered_user import RegisteredUserScreen
-
-EXIT_PASSWORD = "admin123"
+from screens.admin_password import AdminPasswordScreen  # ← added
 
 
 class MainWindow(QMainWindow):
@@ -21,8 +20,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("PeeSense")
 
-        # DO NOT use showFullScreen on X11
-        # Allow stacking with external keyboard
+        # Frameless kiosk mode
         self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
         self.showMaximized()
 
@@ -36,6 +34,7 @@ class MainWindow(QMainWindow):
         self.upload = UploadScreen(self)
         self.result = ResultScreen(self)
         self.registered = RegisteredUserScreen(self)
+        self.admin_password = AdminPasswordScreen(self)  # ← added
 
         # Add to stack
         self.stack.addWidget(self.home)
@@ -44,6 +43,7 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.upload)
         self.stack.addWidget(self.result)
         self.stack.addWidget(self.registered)
+        self.stack.addWidget(self.admin_password)  # ← added
 
         self.stack.setCurrentWidget(self.home)
 
