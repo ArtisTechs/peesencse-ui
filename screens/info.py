@@ -3,8 +3,8 @@ from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLineEdit, QComboBox,
     QMessageBox, QDialog
 )
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont, QIntValidator
+from PySide6.QtCore import Qt, QRegularExpression
+from PySide6.QtGui import QFont, QIntValidator, QRegularExpressionValidator
 from services.api import create_user
 
 
@@ -81,6 +81,9 @@ class InfoScreen(QWidget):
     def __init__(self, main):
         super().__init__()
         self.main = main
+        self.name_validator = QRegularExpressionValidator(
+            QRegularExpression("[A-Za-z]*")
+        )
 
         self.setStyleSheet("""
             QWidget {
@@ -115,14 +118,17 @@ class InfoScreen(QWidget):
         self.first_name = QLineEdit()
         self.first_name.setPlaceholderText("First Name")
         self.first_name.setFixedHeight(40)
+        self.first_name.setValidator(self.name_validator)
 
         self.middle_name = QLineEdit()
         self.middle_name.setPlaceholderText("Middle Name (Optional)")
         self.middle_name.setFixedHeight(40)
+        self.middle_name.setValidator(self.name_validator)
 
         self.last_name = QLineEdit()
         self.last_name.setPlaceholderText("Last Name")
         self.last_name.setFixedHeight(40)
+        self.last_name.setValidator(self.name_validator)
 
         self.age = QLineEdit()
         self.age.setPlaceholderText("Age")
@@ -233,15 +239,24 @@ class InfoScreen(QWidget):
         self.error_label.hide()
         self.error_label.setText("")
 
-        if not self.first_name.text().strip():
-            self.show_error("First name is required.")
-            self.highlight(self.first_name)
-            return False
+        name_fields = [
+            (self.first_name, "First name", True),
+            (self.middle_name, "Middle name", False),
+            (self.last_name, "Last name", True)
+        ]
 
-        if not self.last_name.text().strip():
-            self.show_error("Last name is required.")
-            self.highlight(self.last_name)
-            return False
+        for widget, label, required in name_fields:
+            value = widget.text().strip()
+
+            if required and not value:
+                self.show_error(f"{label} is required.")
+                self.highlight(widget)
+                return False
+
+            if value and not value.isalpha():
+                self.show_error(f"{label} must contain letters only.")
+                self.highlight(widget)
+                return False
 
         if not self.age.text().strip():
             self.show_error("Age is required.")
